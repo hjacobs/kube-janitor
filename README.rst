@@ -87,17 +87,29 @@ When using the ``--rules-file`` option, the path needs to point to a valid YAML 
 .. code-block:: yaml
 
     rules:
+    # remove deployments and statefulsets without a label "application"
     - id: require-application-label
       resources:
       - deployments
       - statefulsets
       jmespath: "!(spec.template.metadata.labels.application)"
       ttl: 4d
+    # delete all deployments with a name starting with "pr-*"
     - id: temporary-pr-deployments
       resources:
       - deployments
       jmespath: "starts_with(metadata.name, 'pr-')"
       ttl: 4h
+
+The first matching rule will define the TTL (``ttl`` field). Kubernetes objects with a ``janitor/ttl`` annotation will not be matched against any rule.
+
+A rule matches for a given Kubernetes object if all of the following criteria is true:
+
+* the object has no ``janitor/ttl`` annotation (otherwise the TTL value from the annotation is applied)
+* the object's type is included in the ``resources`` list of the rule or the special value ``*`` is part of the ``resources`` list (similar to Kubernetes RBAC)
+* the JMESPath_ evaluates to a truth-like value (boolean ``true``, non-empty list, non-empty object, or non-empty string)
+
+The first matching rule will define the TTL for the object (as if the object would have a ``janitor/ttl`` annotation with the same value).
 
 
 Contributing
@@ -146,3 +158,4 @@ along with this program.  If not, see http://www.gnu.org/licenses/.
 .. _Minikube: https://github.com/kubernetes/minikube
 .. _ping try_except_ on Twitter: https://twitter.com/try_except_
 .. _issues labeled with "help wanted": https://github.com/hjacobs/kube-janitor/issues?q=is%3Aissue+is%3Aopen+label%3A%22help+wanted%22
+.. _JMESPath: http://jmespath.org/
