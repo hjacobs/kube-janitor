@@ -107,6 +107,12 @@ When using the ``--rules-file`` option, the path needs to point to a valid YAML 
       - deployments
       jmespath: "starts_with(metadata.name, 'pr-')"
       ttl: 4h
+    # delete all resources within the "temp" namespace after 3 days
+    - id: temp-namespace-cleanup
+      resources:
+      - "*"
+      jmespath: "metadata.namespace == 'temp'"
+      ttl: 3d
 
 The first matching rule will define the TTL (``ttl`` field). Kubernetes objects with a ``janitor/ttl`` annotation will not be matched against any rule.
 
