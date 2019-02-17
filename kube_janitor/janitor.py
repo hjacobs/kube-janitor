@@ -37,9 +37,13 @@ def get_age(resource):
 
 def delete(resource, dry_run: bool):
     if dry_run:
-        logger.info('**DRY-RUN**: would delete %s %s/%s', resource.kind, resource.namespace, resource.name)
+        logger.info(f'**DRY-RUN**: would delete {resource.kind} {resource.namespace}/{resource.name}')
     else:
-        print('SDF')
+        logger.info(f'Deleting {resource.kind} {resource.namespace}/{resource.name}..')
+        try:
+            resource.delete()
+        except Exception as e:
+            logger.error(f'Could not delete {resource.kind} {resource.namespace}/{resource.name}: {e}')
 
 
 def clean_up(api,
