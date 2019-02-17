@@ -33,7 +33,9 @@ def test_clean_up_default():
         response.json.return_value = data
         return response
     api_mock.get = get
-    clean_up(api_mock, ALL, [], ALL, ['kube-system'], [], dry_run=False)
+    counter = clean_up(api_mock, ALL, [], ALL, ['kube-system'], [], dry_run=False)
+
+    assert counter['resources-processed'] == 1
 
 
 def test_clean_up_custom_resource():
@@ -42,7 +44,7 @@ def test_clean_up_custom_resource():
     def get(**kwargs):
         if kwargs.get('url') == 'namespaces':
             data = {'items': [{'metadata': {'name': 'ns-1'}}]}
-        if kwargs.get('url') == 'customfoos':
+        elif kwargs.get('url') == 'customfoos':
             data = {'items': [{'metadata': {
                 'name': 'foo-1',
                 'namespace': 'ns-1',
@@ -61,7 +63,12 @@ def test_clean_up_custom_resource():
         return response
 
     api_mock.get = get
-    clean_up(api_mock, ALL, [], ALL, [], [], dry_run=False)
+    counter = clean_up(api_mock, ALL, [], ALL, [], [], dry_run=False)
+
+    # namespace ns-1 and object foo-1
+    assert counter['resources-processed'] == 2
+    assert counter['customfoos-with-ttl'] == 1
+    assert counter['customfoos-deleted'] == 1
 
     # verify that the delete call happened
     api_mock.delete.assert_called_once_with(namespace='ns-1', url='customfoos/foo-1', version='srcco.de/v1')

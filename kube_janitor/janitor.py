@@ -74,7 +74,7 @@ def handle_resource(resource, rules, dry_run: bool):
             if age.total_seconds() > ttl_seconds:
                 logger.info(f'{resource.kind} {resource.name} with TTL of {ttl} is {age} old and will be deleted')
                 delete(resource, dry_run=dry_run)
-                counter['{resource.endpoint}-deleted'] = 1
+                counter[f'{resource.endpoint}-deleted'] = 1
 
     return counter
 
@@ -122,3 +122,4 @@ def clean_up(api,
 
     stats = ', '.join([f'{k}={v}' for k, v in counter.items()])
     logger.info(f'Clean up run completed: {stats}')
+    return counter
