@@ -22,7 +22,7 @@ Example use cases:
 
 * Deploy the janitor to a test (non-prod) cluster and use namespaces with a TTL of 7 days (``janitor/ttl: 7d`` on the namespace object) for prototyping
 * Annotate your temporary manual test nginx deployment with ``kubectl annotate deploy nginx janitor/ttl=24h`` to automatically delete it after 24 hours
-* Automatically set ``janitor/ttl`` on resources created by your CI/CD pipeline for pull requests (so PR tests can run and resources are clean up later)
+* Automatically set ``janitor/ttl`` on resources created by your CI/CD pipeline for pull requests (so PR tests can run and resources are cleaned up later)
 * Define a rule to automatically delete resources after 4 days if required labels were not set (see Rules File below)
 
 
