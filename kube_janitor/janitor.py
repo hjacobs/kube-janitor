@@ -48,8 +48,15 @@ def delete(resource, dry_run: bool):
             logger.error(f'Could not delete {resource.kind} {resource.namespace}/{resource.name}: {e}')
 
 
-def handle_resource(resource, dry_run: bool):
+def handle_resource(resource, rules, dry_run: bool):
     ttl = resource.annotations.get(TTL_ANNOTATION)
+    if not ttl:
+        for rule in rules:
+            if rule.matches(resource):
+                logger.debug(f'Rule {rule.id} applies {rule.ttl} TTL to {resource.kind} {resource.namespace}/{resource.name}')
+                ttl = rule.ttl
+                # first rule which matches
+                break
     if ttl:
         try:
             ttl_seconds = parse_ttl(ttl)
@@ -68,11 +75,12 @@ def clean_up(api,
              exclude_resources: frozenset,
              include_namespaces: frozenset,
              exclude_namespaces: frozenset,
+             rules: list,
              dry_run: bool):
 
     for namespace in Namespace.objects(api):
         if matches_resource_filter(namespace, include_resources, exclude_resources, include_namespaces, exclude_namespaces):
-            handle_resource(namespace, dry_run)
+            handle_resource(namespace, rules, dry_run)
         else:
             logger.debug(f'Skipping {namespace.kind} {namespace}')
 
@@ -99,4 +107,4 @@ def clean_up(api,
                 logger.error(f'Could not list {_type.kind} objects: {e}')
 
     for resource in filtered_resources:
-        handle_resource(resource, dry_run)
+        handle_resource(resource, rules, dry_run)

@@ -33,7 +33,7 @@ def test_clean_up_default():
         response.json.return_value = data
         return response
     api_mock.get = get
-    clean_up(api_mock, ALL, [], ALL, ['kube-system'], dry_run=False)
+    clean_up(api_mock, ALL, [], ALL, ['kube-system'], [], dry_run=False)
 
 
 def test_clean_up_custom_resource():
@@ -61,7 +61,7 @@ def test_clean_up_custom_resource():
         return response
 
     api_mock.get = get
-    clean_up(api_mock, ALL, [], ALL, [], dry_run=False)
+    clean_up(api_mock, ALL, [], ALL, [], [], dry_run=False)
 
     # verify that the delete call happened
     api_mock.delete.assert_called_once_with(namespace='ns-1', url='customfoos/foo-1', version='srcco.de/v1')
