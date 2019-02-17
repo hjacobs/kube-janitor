@@ -43,7 +43,7 @@ To see the janitor in action, deploy a simple nginx and annotate it accordingly:
     $ kubectl run temp-nginx --image=nginx
     $ kubectl annotate deploy temp-nginx janitor/ttl=5m
 
-You should see ``temp-nginx`` deployment being deleted after 5 minutes.
+You should see the ``temp-nginx`` deployment being deleted after 5 minutes.
 
 
 Configuration
