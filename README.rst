@@ -17,7 +17,8 @@ if the ``janitor/ttl`` annotation indicates the resource as expired.
 Example use cases:
 
 * Deploy the janitor to a test (non-prod) cluster and use namespaces with a TTL of 7 days (``janitor/ttl: 7d``) for prototyping
-* Annotate your temporary nginx deployment with ``kubectl annotate deploy nginx janitor/ttl=24h`` to automatically delete it after 24 hours
+* Annotate your temporary manual test nginx deployment with ``kubectl annotate deploy nginx janitor/ttl=24h`` to automatically delete it after 24 hours
+* Automatically set ``janitor/ttl`` on resources created by your CI/CD pipeline for pull requests (so PR tests can run and resources are clean up later)
 
 
 Usage
@@ -39,9 +40,13 @@ The example configuration uses the ``--dry-run`` as a safety flag to prevent any
 Configuration
 =============
 
-The janitor is configured via command line args, environment variables and/or Kubernetes annotations.
+The janitor is configured via command line args, environment variables and Kubernetes annotations.
 
-TODO
+Kubernetes annotations:
+
+``janitor/ttl``
+    Maximum time to live (TTL) for the annotated resource. Annotation value must be a string composed of a integer value and a unit suffix (``s``, ``m``, ``h``, ``d``), e.g. ``120s`` (120 seconds), ``5m`` (5 minutes), ``8h`` (8 hours), or ``7d`` (7 days).
+    Note that the actual time of deletion depends on the Janitor's clean up interval. The resource will be deleted if its age (delta between now and the resource creation time) is greater than the specified TTL.
 
 Available command line options:
 
@@ -49,6 +54,18 @@ Available command line options:
     Dry run mode: do not change anything, just print what would be done
 ``--debug``
     Debug mode: print more information
+``--once``
+    Run only once and exit. This is useful if you run the Kubernetes Janitor as a ``CronJob``.
+``--interval``
+    Loop interval (default: 30s). This option only makes sense when the ``--once`` flag is not set.
+``--include-resources``
+    Include resources for clean up (default: all resources), can also be configured via environment variable ``INCLUDE_RESOURCES``. This option can be used if you want to clean up only certain resource types, e.g. only ``deployments``.
+``--exclude-resources``
+    Exclude resources from clean up (default: events,controllerrevisions), can also be configured via environment variable ``EXCLUDE_RESOURCES``.
+``--include-namespaces``
+    Include namespaces for clean up (default: all namespaces), can also be configured via environment variable ``INCLUDE_NAMESPACES``
+``--exclude-namespaces``
+    Exclude namespaces from clean up (default: kube-system), can also be configured via environment variable ``EXCLUDE_NAMESPACES``
 
 
 Contributing
