@@ -17,7 +17,7 @@ if the ``janitor/ttl`` annotation indicates the resource as expired.
 Example use cases:
 
 * Deploy the janitor to a test (non-prod) cluster and use namespaces with a TTL of 7 days (``janitor/ttl: 7d``) for prototyping
-* Annotate your temporary nginx deployment with ``zkubectl annotate deploy nginx janitor/ttl=24h`` to automatically delete it after 24 hours
+* Annotate your temporary nginx deployment with ``kubectl annotate deploy nginx janitor/ttl=24h`` to automatically delete it after 24 hours
 
 
 Usage
