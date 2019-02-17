@@ -24,7 +24,7 @@ Example use cases:
 Usage
 =====
 
-Deploy the janitor into your cluster via (also works with Minikube):
+Deploy the janitor into your cluster via (also works with Minikube_):
 
 .. code-block:: bash
 
@@ -35,6 +35,15 @@ The example configuration uses the ``--dry-run`` as a safety flag to prevent any
 .. code-block:: bash
 
     $ kubectl edit deploy kube-janitor
+
+To see the janitor in action, deploy a simple nginx and annotate it accordingly:
+
+.. code-block:: bash
+
+    $ kubectl run temp-nginx --image=nginx
+    $ kubectl annotate deploy temp-nginx janitor/ttl=5m
+
+You should see ``temp-nginx`` deployment being deleted after 5 minutes.
 
 
 Configuration
@@ -80,7 +89,7 @@ PRs are welcome. Please also have a look at `issues labeled with "help wanted"`_
 Local Development
 =================
 
-You can run Kubernetes Janitor against your current kubeconfig context, e.g. local `Minikube <https://github.com/kubernetes/minikube>`_:
+You can run Kubernetes Janitor against your current kubeconfig context, e.g. local Minikube_:
 
 .. code-block:: bash
 
@@ -111,5 +120,6 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see http://www.gnu.org/licenses/.
 
+.. _Minikube: https://github.com/kubernetes/minikube
 .. _ping try_except_ on Twitter: https://twitter.com/try_except_
 .. _issues labeled with "help wanted": https://github.com/hjacobs/kube-janitor/issues?q=is%3Aissue+is%3Aopen+label%3A%22help+wanted%22
