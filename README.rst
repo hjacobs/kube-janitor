@@ -10,6 +10,10 @@ Kubernetes Janitor
    :target: https://coveralls.io/github/hjacobs/kube-janitor?branch=master
    :alt: Code Coverage
 
+.. image:: https://img.shields.io/docker/pulls/hjacobs/kube-janitor.svg
+   :target: https://hub.docker.com/r/hjacobs/kube-janitor
+   :alt: Docker pulls
+
 Kubernetes Janitor cleans up (deletes) Kubernetes resources after a configured TTL (time to live).
 It processes all namespaces and all namespaced resources including custom resource definitions (CRDs) and will delete them
 if the ``janitor/ttl`` annotation indicates the resource as expired.
