@@ -1,7 +1,9 @@
 import datetime
 import logging
+import pykube
 
 from .helper import parse_ttl
+from .resources import get_namespaced_resource_types
 from pykube import Namespace
 
 logger = logging.getLogger(__name__)
@@ -46,25 +48,48 @@ def delete(resource, dry_run: bool):
             logger.error(f'Could not delete {resource.kind} {resource.namespace}/{resource.name}: {e}')
 
 
+def handle_resource(resource, dry_run: bool):
+    ttl = resource.annotations.get(TTL_ANNOTATION)
+    if ttl:
+        try:
+            ttl_seconds = parse_ttl(ttl)
+        except ValueError as e:
+            logger.info(f'Ignoring invalid TTL on {resource.kind} {resource.name}: {e}')
+        else:
+            age = get_age(resource)
+            logger.debug(f'{resource.kind} {resource.name} has TTL of {ttl} is {age} old')
+            if age.total_seconds() > ttl_seconds:
+                logger.info(f'{resource.kind} {resource.name} with TTL of {ttl} is {age} old and will be deleted')
+                delete(resource, dry_run=dry_run)
+
+
 def clean_up(api,
              include_resources: frozenset,
              exclude_resources: frozenset,
              include_namespaces: frozenset,
              exclude_namespaces: frozenset,
              dry_run: bool):
+
     for namespace in Namespace.objects(api):
-        if not matches_resource_filter(namespace, include_resources, exclude_resources, include_namespaces, exclude_namespaces):
-            logger.debug(f'Skipping namespace {namespace}')
-            continue
-        ttl = namespace.annotations.get(TTL_ANNOTATION)
-        if ttl:
+        if matches_resource_filter(namespace, include_resources, exclude_resources, include_namespaces, exclude_namespaces):
+            handle_resource(namespace, dry_run)
+        else:
+            logger.debug(f'Skipping {namespace.kind} {namespace}')
+
+    filtered_resources = []
+
+    resource_types = get_namespaced_resource_types(api)
+    for _type in resource_types:
+        if _type.endpoint not in exclude_resources:
             try:
-                ttl_seconds = parse_ttl(ttl)
-            except ValueError as e:
-                logger.info(f'Ignoring invalid TTL on namespace {namespace}: {e}')
-            else:
-                age = get_age(namespace)
-                logger.debug(f'Namespace {namespace} has TTL of {ttl} is {age} old')
-                if age.total_seconds() > ttl_seconds:
-                    logger.info(f'Namespace {namespace} with TTL of {ttl} is {age} old and will be deleted')
-                    delete(namespace, dry_run=dry_run)
+                for resource in _type.objects(api, namespace=pykube.all):
+                    if matches_resource_filter(resource, include_resources, exclude_resources, include_namespaces, exclude_namespaces):
+                        filtered_resources.append(resource)
+                    else:
+                        logger.debug(f'Skipping {resource.kind} {resource.namespace}/{resource.name}')
+                        continue
+            except Exception as e:
+                logger.error(f'Could not list {_type.kind} objects: {e}')
+
+    for resource in filtered_resources:
+        handle_resource(resource, dry_run)

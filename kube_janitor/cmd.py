@@ -2,6 +2,9 @@ import os
 
 import argparse
 
+DEFAULT_EXCLUDE_RESOURCES = 'events,controllerrevisions'
+DEFAULT_EXCLUDE_NAMESPACES = 'kube-system'
+
 
 def get_parser():
     parser = argparse.ArgumentParser()
@@ -12,10 +15,10 @@ def get_parser():
     parser.add_argument('--interval', type=int, help='Loop interval (default: 30s)', default=30)
     parser.add_argument('--include-resources', help='Resources to consider for clean up (default: all)',
                         default=os.getenv('INCLUDE_RESOURCES', 'all'))
-    parser.add_argument('--exclude-resources', help='Resources to exclude from clean up (default: none)',
-                        default=os.getenv('EXCLUDE_RESOURCES', ''))
+    parser.add_argument('--exclude-resources', help=f'Resources to exclude from clean up (default: {DEFAULT_EXCLUDE_RESOURCES})',
+                        default=os.getenv('EXCLUDE_RESOURCES', DEFAULT_EXCLUDE_RESOURCES))
     parser.add_argument('--include-namespaces', help='Include namespaces for clean up (default: all)',
                         default=os.getenv('INCLUDE_NAMESPACES', 'all'))
-    parser.add_argument('--exclude-namespaces', help='Exclude namespaces from clean up (default: kube-system)',
-                        default=os.getenv('EXCLUDE_NAMESPACES', 'kube-system'))
+    parser.add_argument('--exclude-namespaces', help=f'Exclude namespaces from clean up (default: {DEFAULT_EXCLUDE_NAMESPACES})',
+                        default=os.getenv('EXCLUDE_NAMESPACES', DEFAULT_EXCLUDE_NAMESPACES))
     return parser
