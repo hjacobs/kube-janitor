@@ -21,7 +21,6 @@ def test_clean_up_default():
     api_mock = MagicMock(spec=NamespacedAPIObject, name='APIMock')
 
     def get(**kwargs):
-        print(kwargs)
         if kwargs.get('url') == 'namespaces':
             data = {'items': [{'metadata': {'name': 'default'}}]}
         elif kwargs['version'] == 'v1':
