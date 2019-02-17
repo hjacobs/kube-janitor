@@ -57,7 +57,7 @@ def handle_resource(resource, dry_run: bool):
             logger.info(f'Ignoring invalid TTL on {resource.kind} {resource.name}: {e}')
         else:
             age = get_age(resource)
-            logger.debug(f'{resource.kind} {resource.name} has TTL of {ttl} is {age} old')
+            logger.debug(f'{resource.kind} {resource.name} with TTL of {ttl} is {age} old')
             if age.total_seconds() > ttl_seconds:
                 logger.info(f'{resource.kind} {resource.name} with TTL of {ttl} is {age} old and will be deleted')
                 delete(resource, dry_run=dry_run)
@@ -76,6 +76,8 @@ def clean_up(api,
         else:
             logger.debug(f'Skipping {namespace.kind} {namespace}')
 
+    already_seen = set()
+
     filtered_resources = []
 
     resource_types = get_namespaced_resource_types(api)
@@ -83,11 +85,16 @@ def clean_up(api,
         if _type.endpoint not in exclude_resources:
             try:
                 for resource in _type.objects(api, namespace=pykube.all):
+                    # objects might be available via multiple API versions (e.g. deployments appear as extensions/v1beta1 and apps/v1)
+                    # => process them only once
+                    object_id = (resource.kind, resource.namespace, resource.name)
+                    if object_id in already_seen:
+                        continue
+                    already_seen.add(object_id)
                     if matches_resource_filter(resource, include_resources, exclude_resources, include_namespaces, exclude_namespaces):
                         filtered_resources.append(resource)
                     else:
                         logger.debug(f'Skipping {resource.kind} {resource.namespace}/{resource.name}')
-                        continue
             except Exception as e:
                 logger.error(f'Could not list {_type.kind} objects: {e}')
 
