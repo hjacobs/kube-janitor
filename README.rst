@@ -10,12 +10,14 @@ Kubernetes Janitor
    :target: https://coveralls.io/github/hjacobs/kube-janitor?branch=master
    :alt: Code Coverage
 
-Clean up (delete) Kubernetes resources after a configured TTL (time to live).
+Kubernetes Janitor cleans up (deletes) Kubernetes resources after a configured TTL (time to live).
+It processes all namespaced resources including custom resource definitions (CRDs) and will delete them
+if the ``janitor/ttl`` annotation indicates the resource as expired.
 
 Example use cases:
 
-* Deploy the janitor to a test (non-prod) cluster and use namespaces with a TTL of 7 days for prototyping
-* TODO
+* Deploy the janitor to a test (non-prod) cluster and use namespaces with a TTL of 7 days (``janitor/ttl: 7d``) for prototyping
+* Annotate your temporary nginx deployment with ``zkubectl annotate deploy nginx janitor/ttl=24h`` to automatically delete it after 24 hours
 
 
 Usage
@@ -56,6 +58,24 @@ Easiest way to contribute is to provide feedback! We would love to hear what you
 Create an issue or `ping try_except_ on Twitter`_.
 
 PRs are welcome. Please also have a look at `issues labeled with "help wanted"`_.
+
+
+Local Development
+=================
+
+You can run Kubernetes Janitor against your current kubeconfig context, e.g. local `Minikube <https://github.com/kubernetes/minikube>`_:
+
+.. code-block:: bash
+
+    $ pipenv install --dev
+    $ pipenv shell
+    $ python3 -m kube_janitor --dry-run --debug --once
+
+To run PEP8 (flake8) checks and unit tests including coverage report:
+
+.. code-block:: bash
+
+    $ make test
 
 
 License
