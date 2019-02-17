@@ -11,9 +11,9 @@ from kube_janitor.rules import load_rules_from_file
 logger = logging.getLogger('janitor')
 
 
-def main():
+def main(args=None):
     parser = cmd.get_parser()
-    args = parser.parse_args()
+    args = parser.parse_args(args)
 
     logging.basicConfig(format='%(asctime)s %(levelname)s: %(message)s',
                         level=logging.DEBUG if args.debug else logging.INFO)

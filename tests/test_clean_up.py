@@ -3,6 +3,7 @@ from unittest.mock import MagicMock
 from pykube.objects import NamespacedAPIObject
 from pykube import Namespace
 from kube_janitor.janitor import matches_resource_filter, clean_up
+from kube_janitor.rules import Rule
 
 ALL = frozenset(['all'])
 
@@ -22,7 +23,8 @@ def test_clean_up_default():
 
     def get(**kwargs):
         if kwargs.get('url') == 'namespaces':
-            data = {'items': [{'metadata': {'name': 'default'}}]}
+            # kube-system is skipped
+            data = {'items': [{'metadata': {'name': 'default'}}, {'metadata': {'name': 'kube-system'}}]}
         elif kwargs['version'] == 'v1':
             data = {'resources': []}
         elif kwargs['version'] == '/apis':
@@ -36,6 +38,42 @@ def test_clean_up_default():
     counter = clean_up(api_mock, ALL, [], ALL, ['kube-system'], [], dry_run=False)
 
     assert counter['resources-processed'] == 1
+
+
+def test_ignore_invalid_ttl():
+    api_mock = MagicMock(spec=NamespacedAPIObject, name='APIMock')
+
+    def get(**kwargs):
+        if kwargs.get('url') == 'namespaces':
+            data = {'items': [{'metadata': {'name': 'ns-1'}}]}
+        elif kwargs.get('url') == 'customfoos':
+            data = {'items': [{'metadata': {
+                'name': 'foo-1',
+                'namespace': 'ns-1',
+                'creationTimestamp': '2019-01-17T15:14:38Z',
+                # invalid TTL (no unit suffix)
+                'annotations': {'janitor/ttl': '123'}}}]}
+        elif kwargs['version'] == 'v1':
+            data = {'resources': []}
+        elif kwargs['version'] == 'srcco.de/v1':
+            data = {'resources': [{'kind': 'CustomFoo', 'name': 'customfoos', 'namespaced': True, 'verbs': ['delete']}]}
+        elif kwargs['version'] == '/apis':
+            data = {'groups': [{'preferredVersion': {'groupVersion': 'srcco.de/v1'}}]}
+        else:
+            data = {}
+        response = MagicMock()
+        response.json.return_value = data
+        return response
+
+    api_mock.get = get
+    counter = clean_up(api_mock, ALL, [], ALL, [], [], dry_run=False)
+
+    # namespace ns-1 and object foo-1
+    assert counter['resources-processed'] == 2
+    assert counter['customfoos-with-ttl'] == 0
+    assert counter['customfoos-deleted'] == 0
+
+    assert not api_mock.delete.called
 
 
 def test_clean_up_custom_resource():
@@ -67,6 +105,45 @@ def test_clean_up_custom_resource():
 
     # namespace ns-1 and object foo-1
     assert counter['resources-processed'] == 2
+    assert counter['customfoos-with-ttl'] == 1
+    assert counter['customfoos-deleted'] == 1
+
+    # verify that the delete call happened
+    api_mock.delete.assert_called_once_with(namespace='ns-1', url='customfoos/foo-1', version='srcco.de/v1')
+
+
+def test_clean_up_by_rule():
+    api_mock = MagicMock(spec=NamespacedAPIObject, name='APIMock')
+
+    rule = Rule.from_entry({'id': 'r1', 'resources': ['customfoos'], 'jmespath': "metadata.namespace == 'ns-1'", 'ttl': '10m'})
+
+    def get(**kwargs):
+        if kwargs.get('url') == 'namespaces':
+            data = {'items': [{'metadata': {'name': 'ns-1'}}]}
+        elif kwargs.get('url') == 'customfoos':
+            data = {'items': [{'metadata': {
+                'name': 'foo-1',
+                'namespace': 'ns-1',
+                'creationTimestamp': '2019-01-17T15:14:38Z',
+                }}]}
+        elif kwargs['version'] == 'v1':
+            data = {'resources': []}
+        elif kwargs['version'] == 'srcco.de/v1':
+            data = {'resources': [{'kind': 'CustomFoo', 'name': 'customfoos', 'namespaced': True, 'verbs': ['delete']}]}
+        elif kwargs['version'] == '/apis':
+            data = {'groups': [{'preferredVersion': {'groupVersion': 'srcco.de/v1'}}]}
+        else:
+            data = {}
+        response = MagicMock()
+        response.json.return_value = data
+        return response
+
+    api_mock.get = get
+    counter = clean_up(api_mock, ALL, [], ALL, [], [rule], dry_run=False)
+
+    # namespace ns-1 and object foo-1
+    assert counter['resources-processed'] == 2
+    assert counter['rule-r1-matches'] == 1
     assert counter['customfoos-with-ttl'] == 1
     assert counter['customfoos-deleted'] == 1
 

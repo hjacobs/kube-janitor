@@ -1,6 +1,6 @@
 import pytest
 
-from pykube.objects import Deployment
+from pykube.objects import Deployment, StatefulSet
 
 from kube_janitor.rules import Rule, load_rules_from_file
 
@@ -18,6 +18,38 @@ def test_load_rules_from_empty_file(tmpdir):
     load_rules_from_file(str(p))
 
 
+def test_load_rules_from_file_no_mapping(tmpdir):
+    p = tmpdir.join("missing-keys.yaml")
+    p.write('''rules:
+                 - foo
+                 - bar
+            ''')
+    with pytest.raises(TypeError):
+        load_rules_from_file(str(p))
+
+
+def test_load_rules_from_file_missing_keys(tmpdir):
+    p = tmpdir.join("missing-keys.yaml")
+    p.write('''rules:
+                 - resources: [foos, bars]
+                   jmespath: a.b.c
+                   ttl: 5m
+            ''')
+    with pytest.raises(TypeError):
+        load_rules_from_file(str(p))
+
+
+def test_load_rules_from_file(tmpdir):
+    p = tmpdir.join("rules.yaml")
+    p.write('''rules:
+                 - id: rule-1
+                   resources: [foos, bars]
+                   jmespath: a.b.c
+                   ttl: 5m
+            ''')
+    load_rules_from_file(str(p))
+
+
 def test_rule_invalid_id():
     with pytest.raises(ValueError):
         Rule.from_entry({'id': 'X', 'resources': [], 'jmespath': 'a.b', 'ttl': '1s'})
@@ -31,3 +63,6 @@ def test_rule_matches():
     assert not rule.matches(resource)
     resource.obj['metadata']['labels']['app'] = 'foobar'
     assert rule.matches(resource)
+
+    resource = StatefulSet(None, {'metadata': {'namespace': 'ns-1', 'name': 'ss-1'}})
+    assert not rule.matches(resource)
