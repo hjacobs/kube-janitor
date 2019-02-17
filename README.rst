@@ -16,13 +16,14 @@ Kubernetes Janitor
 
 Kubernetes Janitor cleans up (deletes) Kubernetes resources after a configured TTL (time to live).
 It processes all namespaces and all namespaced resources including custom resource definitions (CRDs) and will delete them
-if the ``janitor/ttl`` annotation indicates the resource as expired.
+if the ``janitor/ttl`` annotation or a TTL rule indicates the resource as expired.
 
 Example use cases:
 
 * Deploy the janitor to a test (non-prod) cluster and use namespaces with a TTL of 7 days (``janitor/ttl: 7d`` on the namespace object) for prototyping
 * Annotate your temporary manual test nginx deployment with ``kubectl annotate deploy nginx janitor/ttl=24h`` to automatically delete it after 24 hours
 * Automatically set ``janitor/ttl`` on resources created by your CI/CD pipeline for pull requests (so PR tests can run and resources are clean up later)
+* Define a rule to automatically delete resources after 4 days if required labels were not set (see Rules File below)
 
 
 Usage
@@ -48,6 +49,8 @@ To see the janitor in action, deploy a simple nginx and annotate it accordingly:
     $ kubectl annotate deploy temp-nginx janitor/ttl=5m
 
 You should see the ``temp-nginx`` deployment being deleted after 5 minutes.
+
+Edit the example rules file via ``kubectl edit configmap kube-janitor`` to try out generic TTL rules (needs a pod restart to reload rules).
 
 
 Configuration
