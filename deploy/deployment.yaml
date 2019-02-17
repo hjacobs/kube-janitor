@@ -20,14 +20,15 @@ spec:
       containers:
       - name: janitor
         # see https://github.com/hjacobs/kube-janitor/releases
-        image: hjacobs/kube-janitor:0.1
+        image: hjacobs/kube-janitor:0.1-10-gce8e1da
         args:
           # dry run by default, remove to perform clean up
           - --dry-run
-          # uncomment to have verbose logging
-          # - --debug
+          # comment out to have less verbose logging
+          - --debug
           # run every minute
           - --interval=60
+          - --rules-file=/config/rules.yaml
         resources:
           limits:
             memory: 100Mi
@@ -38,3 +39,10 @@ spec:
           readOnlyRootFilesystem: true
           runAsNonRoot: true
           runAsUser: 1000
+        volumeMounts:
+          - name: config-volume
+            mountPath: /config
+      volumes:
+      - name: config-volume
+        configMap:
+          name: kube-janitor

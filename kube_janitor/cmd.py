@@ -21,4 +21,6 @@ def get_parser():
                         default=os.getenv('INCLUDE_NAMESPACES', 'all'))
     parser.add_argument('--exclude-namespaces', help=f'Exclude namespaces from clean up (default: {DEFAULT_EXCLUDE_NAMESPACES})',
                         default=os.getenv('EXCLUDE_NAMESPACES', DEFAULT_EXCLUDE_NAMESPACES))
+    parser.add_argument('--rules-file', help='Load TTL rules from given file path',
+                        default=os.getenv('RULES_FILE'))
     return parser

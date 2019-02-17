@@ -49,7 +49,7 @@ You should see the ``temp-nginx`` deployment being deleted after 5 minutes.
 Configuration
 =============
 
-The janitor is configured via command line args, environment variables and Kubernetes annotations.
+The janitor is configured via command line args, environment variables, Kubernetes annotations, and an optional YAML rules file.
 
 Kubernetes annotations:
 
@@ -75,6 +75,53 @@ Available command line options:
     Include namespaces for clean up (default: all namespaces), can also be configured via environment variable ``INCLUDE_NAMESPACES``
 ``--exclude-namespaces``
     Exclude namespaces from clean up (default: kube-system), can also be configured via environment variable ``EXCLUDE_NAMESPACES``
+``--rules-file``
+    Optional: filename pointing to a YAML file with a list of rules to apply TTL values to arbitrary Kubernetes objects, e.g. to delete all deployments without a certain label automatically after N days. See Rules File configuration section below.
+
+
+Rules File
+==========
+
+When using the ``--rules-file`` option, the path needs to point to a valid YAML file with the following format:
+
+.. code-block:: yaml
+
+    rules:
+    # remove deployments and statefulsets without a label "application"
+    - id: require-application-label
+      resources:
+      - deployments
+      - statefulsets
+      jmespath: "!(spec.template.metadata.labels.application)"
+      ttl: 4d
+    # delete all deployments with a name starting with "pr-*"
+    - id: temporary-pr-deployments
+      resources:
+      - deployments
+      jmespath: "starts_with(metadata.name, 'pr-')"
+      ttl: 4h
+
+The first matching rule will define the TTL (``ttl`` field). Kubernetes objects with a ``janitor/ttl`` annotation will not be matched against any rule.
+
+A rule matches for a given Kubernetes object if all of the following criteria is true:
+
+* the object has no ``janitor/ttl`` annotation (otherwise the TTL value from the annotation is applied)
+* the object's type is included in the ``resources`` list of the rule or the special value ``*`` is part of the ``resources`` list (similar to Kubernetes RBAC)
+* the JMESPath_ evaluates to a truth-like value (boolean ``true``, non-empty list, non-empty object, or non-empty string)
+
+The first matching rule will define the TTL for the object (as if the object would have a ``janitor/ttl`` annotation with the same value).
+
+Each rule has the following attributes:
+
+``id``
+    Some string identifying the rule (e.g. for log output), must be lowercase and match the regex ``^[a-z][a-z0-9-]*$``. The ID has no special meaning and is only used to refer to the rule in log output/statistics.
+``resources``
+    List of resources (e.g. ``deployments``, ``namespaces``, ..) this rule should be applied to. The special value ``*`` will match all resource types.
+``jmespath``
+    JMESPath_ expression to evaluate on the resource object. The rule will only match if the expression evaluates to true. The expression will get the Kubernetes object as input.
+    The expression ``metadata.labels.foo`` would evaluate to true if the object has the label ``foo`` and it has a non-empty string as value.
+``ttl``
+    TTL value (e.g. ``15m``) to apply to the object if the rule matches.
 
 
 Contributing
@@ -123,3 +170,4 @@ along with this program.  If not, see http://www.gnu.org/licenses/.
 .. _Minikube: https://github.com/kubernetes/minikube
 .. _ping try_except_ on Twitter: https://twitter.com/try_except_
 .. _issues labeled with "help wanted": https://github.com/hjacobs/kube-janitor/issues?q=is%3Aissue+is%3Aopen+label%3A%22help+wanted%22
+.. _JMESPath: http://jmespath.org/
