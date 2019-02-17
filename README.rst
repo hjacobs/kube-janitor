@@ -10,7 +10,7 @@ Kubernetes Janitor
    :target: https://coveralls.io/github/hjacobs/kube-janitor?branch=master
    :alt: Code Coverage
 
-Clean up (delete) Kubernetes resources after a configured TTL (time to life).
+Clean up (delete) Kubernetes resources after a configured TTL (time to live).
 
 Example use cases:
 
