@@ -20,12 +20,12 @@ spec:
       containers:
       - name: janitor
         # see https://github.com/hjacobs/kube-janitor/releases
-        image: hjacobs/kube-janitor:0.1
+        image: hjacobs/kube-janitor:0.1-10-gce8e1da
         args:
           # dry run by default, remove to perform clean up
           - --dry-run
-          # uncomment to have verbose logging
-          # - --debug
+          # comment out to have less verbose logging
+          - --debug
           # run every minute
           - --interval=60
           - --rules-file=/config/rules.yaml

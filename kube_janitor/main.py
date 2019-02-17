@@ -25,6 +25,7 @@ def main():
 
     if args.rules_file:
         rules = load_rules_from_file(args.rules_file)
+        logger.info(f'Loaded {len(rules)} rules from file {args.rules_file}')
     else:
         rules = []
 

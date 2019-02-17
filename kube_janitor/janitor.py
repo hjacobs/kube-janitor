@@ -2,6 +2,8 @@ import datetime
 import logging
 import pykube
 
+from collections import Counter
+
 from .helper import parse_ttl
 from .resources import get_namespaced_resource_types
 from pykube import Namespace
@@ -49,12 +51,15 @@ def delete(resource, dry_run: bool):
 
 
 def handle_resource(resource, rules, dry_run: bool):
+    counter = {'resources-processed': 1}
+
     ttl = resource.annotations.get(TTL_ANNOTATION)
     if not ttl:
         for rule in rules:
             if rule.matches(resource):
                 logger.debug(f'Rule {rule.id} applies {rule.ttl} TTL to {resource.kind} {resource.namespace}/{resource.name}')
                 ttl = rule.ttl
+                counter[f'rule-{rule.id}-matches'] = 1
                 # first rule which matches
                 break
     if ttl:
@@ -63,11 +68,15 @@ def handle_resource(resource, rules, dry_run: bool):
         except ValueError as e:
             logger.info(f'Ignoring invalid TTL on {resource.kind} {resource.name}: {e}')
         else:
+            counter[f'{resource.endpoint}-with-ttl'] = 1
             age = get_age(resource)
             logger.debug(f'{resource.kind} {resource.name} with TTL of {ttl} is {age} old')
             if age.total_seconds() > ttl_seconds:
                 logger.info(f'{resource.kind} {resource.name} with TTL of {ttl} is {age} old and will be deleted')
                 delete(resource, dry_run=dry_run)
+                counter['{resource.endpoint}-deleted'] = 1
+
+    return counter
 
 
 def clean_up(api,
@@ -78,9 +87,11 @@ def clean_up(api,
              rules: list,
              dry_run: bool):
 
+    counter = Counter()
+
     for namespace in Namespace.objects(api):
         if matches_resource_filter(namespace, include_resources, exclude_resources, include_namespaces, exclude_namespaces):
-            handle_resource(namespace, rules, dry_run)
+            counter.update(handle_resource(namespace, rules, dry_run))
         else:
             logger.debug(f'Skipping {namespace.kind} {namespace}')
 
@@ -107,4 +118,7 @@ def clean_up(api,
                 logger.error(f'Could not list {_type.kind} objects: {e}')
 
     for resource in filtered_resources:
-        handle_resource(resource, rules, dry_run)
+        counter.update(handle_resource(resource, rules, dry_run))
+
+    stats = ', '.join([f'{k}={v}' for k, v in counter.items()])
+    logger.info(f'Clean up run completed: {stats}')
