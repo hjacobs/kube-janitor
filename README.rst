@@ -111,6 +111,18 @@ A rule matches for a given Kubernetes object if all of the following criteria is
 
 The first matching rule will define the TTL for the object (as if the object would have a ``janitor/ttl`` annotation with the same value).
 
+Each rule has the following attributes:
+
+``id``
+    Some string identifying the rule (e.g. for log output), must be lowercase and match the regex ``^[a-z][a-z0-9-]*$``. The ID has no special meaning and is only used to refer to the rule in log output/statistics.
+``resources``
+    List of resources (e.g. ``deployments``, ``namespaces``, ..) this rule should be applied to. The special value ``*`` will match all resource types.
+``jmespath``
+    JMESPath_ expression to evaluate on the resource object. The rule will only match if the expression evaluates to true. The expression will get the Kubernetes object as input.
+    The expression ``metadata.labels.foo`` would evaluate to true if the object has the label ``foo`` and it has a non-empty string as value.
+``ttl``
+    TTL value (e.g. ``15m``) to apply to the object if the rule matches.
+
 
 Contributing
 ============
