@@ -1,0 +1,48 @@
+#!/usr/bin/env python3
+
+import time
+
+import logging
+
+from kube_janitor import __version__, cmd, shutdown
+from kube_janitor.helper import get_kube_api
+from kube_janitor.janitor import clean_up
+
+logger = logging.getLogger('janitor')
+
+
+def main():
+    parser = cmd.get_parser()
+    args = parser.parse_args()
+
+    logging.basicConfig(format='%(asctime)s %(levelname)s: %(message)s',
+                        level=logging.DEBUG if args.debug else logging.INFO)
+
+    logger.info(f'Janitor v{__version__} started with config {args}')
+
+    if args.dry_run:
+        logger.info('**DRY-RUN**: no deletions will be performed!')
+
+    return run_loop(args.once, args.include_resources, args.exclude_resources, args.include_namespaces,
+                    args.exclude_namespaces, args.interval, args.dry_run)
+
+
+def run_loop(run_once, include_resources, exclude_resources, include_namespaces, exclude_namespaces,
+             interval, dry_run):
+    handler = shutdown.GracefulShutdown()
+    while True:
+        try:
+            api = get_kube_api()
+            clean_up(
+                  api,
+                  include_resources=frozenset(include_resources.split(',')),
+                  exclude_resources=frozenset(exclude_resources.split(',')),
+                  include_namespaces=frozenset(include_namespaces.split(',')),
+                  exclude_namespaces=frozenset(exclude_namespaces.split(',')),
+                  dry_run=dry_run)
+        except Exception as e:
+            logger.exception('Failed to clean up: %s', e)
+        if run_once or handler.shutdown_now:
+            return
+        with handler.safe_exit():
+            time.sleep(interval)
