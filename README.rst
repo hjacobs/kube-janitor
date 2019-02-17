@@ -49,7 +49,7 @@ You should see the ``temp-nginx`` deployment being deleted after 5 minutes.
 Configuration
 =============
 
-The janitor is configured via command line args, environment variables and Kubernetes annotations.
+The janitor is configured via command line args, environment variables, Kubernetes annotations, and an optional YAML rules file.
 
 Kubernetes annotations:
 
@@ -75,6 +75,29 @@ Available command line options:
     Include namespaces for clean up (default: all namespaces), can also be configured via environment variable ``INCLUDE_NAMESPACES``
 ``--exclude-namespaces``
     Exclude namespaces from clean up (default: kube-system), can also be configured via environment variable ``EXCLUDE_NAMESPACES``
+``--rules-file``
+    Optional: filename pointing to a YAML file with a list of rules to apply TTL values to arbitrary Kubernetes objects, e.g. to delete all deployments without a certain label automatically after N days. See Rules File configuration section below.
+
+
+Rules File
+==========
+
+When using the ``--rules-file`` option, the path needs to point to a valid YAML file with the following format:
+
+.. code-block:: yaml
+
+    rules:
+    - id: require-application-label
+      resources:
+      - deployments
+      - statefulsets
+      jmespath: "!(spec.template.metadata.labels.application)"
+      ttl: 4d
+    - id: temporary-pr-deployments
+      resources:
+      - deployments
+      jmespath: "starts_with(metadata.name, 'pr-')"
+      ttl: 4h
 
 
 Contributing
