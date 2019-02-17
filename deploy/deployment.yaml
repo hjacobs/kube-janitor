@@ -28,6 +28,7 @@ spec:
           # - --debug
           # run every minute
           - --interval=60
+          - --rules-file=/config/rules.yaml
         resources:
           limits:
             memory: 100Mi
@@ -38,3 +39,10 @@ spec:
           readOnlyRootFilesystem: true
           runAsNonRoot: true
           runAsUser: 1000
+        volumeMounts:
+          - name: config-volume
+            mountPath: /config
+      volumes:
+      - name: config-volume
+        configMap:
+          name: kube-janitor
