@@ -18,6 +18,11 @@ def test_load_rules_from_empty_file(tmpdir):
     load_rules_from_file(str(p))
 
 
+def test_rule_invalid_id():
+    with pytest.raises(ValueError):
+        Rule.from_entry({'id': 'X', 'resources': [], 'jmespath': 'a.b', 'ttl': '1s'})
+
+
 def test_rule_matches():
     rule = Rule.from_entry({'id': 'test', 'resources': ['deployments'], 'jmespath': 'metadata.labels.app', 'ttl': '30m'})
     resource = Deployment(None, {'metadata': {'namespace': 'ns-1', 'name': 'deploy-1'}})

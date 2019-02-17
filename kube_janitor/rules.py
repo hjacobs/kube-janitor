@@ -1,11 +1,14 @@
 import collections
 import jmespath
 import logging
+import re
 import yaml
 
 from pykube.objects import NamespacedAPIObject
 
 from .helper import parse_ttl
+
+RULE_ID_PATTERN = re.compile(r'^[a-z][a-z0-9-]*$')
 
 logger = logging.getLogger(__name__)
 
@@ -13,10 +16,14 @@ logger = logging.getLogger(__name__)
 class Rule(collections.namedtuple('Rule', ['id', 'resources', 'jmespath', 'ttl'])):
 
     def from_entry(entry: dict):
+        id_ = entry['id']
+        if not RULE_ID_PATTERN.match(id_):
+            raise ValueError(f'Invalid rule ID "{id_}": it has to match ^[a-z][a-z0-9-]*$')
+
         # check whether TTL format is correct
         parse_ttl(entry['ttl'])
         return Rule(
-            id=entry['id'],
+            id=id_,
             resources=frozenset(entry['resources']),
             jmespath=jmespath.compile(entry['jmespath']),
             ttl=entry['ttl'])
