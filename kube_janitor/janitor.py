@@ -4,7 +4,7 @@ import pykube
 
 from collections import Counter
 
-from .helper import parse_ttl
+from .helper import parse_ttl, format_duration
 from .resources import get_namespaced_resource_types
 from pykube import Namespace
 
@@ -70,9 +70,10 @@ def handle_resource(resource, rules, dry_run: bool):
         else:
             counter[f'{resource.endpoint}-with-ttl'] = 1
             age = get_age(resource)
-            logger.debug(f'{resource.kind} {resource.name} with TTL of {ttl} is {age} old')
+            age_formatted = format_duration(int(age.total_seconds()))
+            logger.debug(f'{resource.kind} {resource.name} with TTL of {ttl} is {age_formatted} old')
             if age.total_seconds() > ttl_seconds:
-                logger.info(f'{resource.kind} {resource.name} with TTL of {ttl} is {age} old and will be deleted')
+                logger.info(f'{resource.kind} {resource.name} with TTL of {ttl} is {age_formatted} old and will be deleted')
                 delete(resource, dry_run=dry_run)
                 counter[f'{resource.endpoint}-deleted'] = 1
 
