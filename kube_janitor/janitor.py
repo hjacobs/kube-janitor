@@ -6,7 +6,7 @@ from collections import Counter
 
 from .helper import parse_ttl, format_duration
 from .resources import get_namespaced_resource_types
-from pykube import Namespace
+from pykube import Namespace, Event
 
 logger = logging.getLogger(__name__)
 TTL_ANNOTATION = 'janitor/ttl'
@@ -39,6 +39,38 @@ def get_age(resource):
     return age
 
 
+def create_event(resource, message: str, dry_run: bool):
+    now = datetime.datetime.utcnow()
+    timestamp = now.strftime('%Y-%m-%dT%H:%M:%SZ')
+    event = Event(resource.api, {
+        'metadata': {'namespace': resource.namespace, 'generateName': 'kube-janitor-'},
+        'type': 'Normal',
+        'count': 1,
+        'firstTimestamp': timestamp,
+        'lastTimestamp': timestamp,
+        'reason': 'TimeToLiveExpired',
+        'involvedObject': {
+            'apiVersion': resource.version,
+            'name': resource.name,
+            'namespace': resource.namespace,
+            'kind': resource.kind,
+            'resourceVersion': resource.metadata.get('resourceVersion'),
+            # https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids
+            'uid': resource.metadata.get('uid')
+        },
+        'message': message,
+        'source': {
+            'component': 'kube-janitor'
+        }
+
+    })
+    if not dry_run:
+        try:
+            event.create()
+        except Exception as e:
+            logger.error(f'Could not create event {event.obj}: {e}')
+
+
 def delete(resource, dry_run: bool):
     if dry_run:
         logger.info(f'**DRY-RUN**: would delete {resource.kind} {resource.namespace}/{resource.name}')
@@ -54,11 +86,14 @@ def handle_resource(resource, rules, dry_run: bool):
     counter = {'resources-processed': 1}
 
     ttl = resource.annotations.get(TTL_ANNOTATION)
-    if not ttl:
+    if ttl:
+        reason = f'annotation {TTL_ANNOTATION} is set'
+    else:
         for rule in rules:
             if rule.matches(resource):
                 logger.debug(f'Rule {rule.id} applies {rule.ttl} TTL to {resource.kind} {resource.namespace}/{resource.name}')
                 ttl = rule.ttl
+                reason = f'rule {rule.id} matches'
                 counter[f'rule-{rule.id}-matches'] = 1
                 # first rule which matches
                 break
@@ -71,9 +106,11 @@ def handle_resource(resource, rules, dry_run: bool):
             counter[f'{resource.endpoint}-with-ttl'] = 1
             age = get_age(resource)
             age_formatted = format_duration(int(age.total_seconds()))
-            logger.debug(f'{resource.kind} {resource.name} with TTL of {ttl} is {age_formatted} old')
+            logger.debug(f'{resource.kind} {resource.name} with {ttl} TTL is {age_formatted} old')
             if age.total_seconds() > ttl_seconds:
-                logger.info(f'{resource.kind} {resource.name} with TTL of {ttl} is {age_formatted} old and will be deleted')
+                message = f'{resource.kind} {resource.name} with {ttl} TTL is {age_formatted} old and will be deleted ({reason})'
+                logger.info(message)
+                create_event(resource, message, dry_run=dry_run)
                 delete(resource, dry_run=dry_run)
                 counter[f'{resource.endpoint}-deleted'] = 1
 

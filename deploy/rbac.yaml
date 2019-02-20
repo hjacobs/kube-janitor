@@ -9,6 +9,12 @@ metadata:
   name: kube-janitor
 rules:
 - apiGroups:
+  - ""
+  resources:
+  - events
+  verbs:
+  - create
+- apiGroups:
   - "*"
   resources:
   - "*"

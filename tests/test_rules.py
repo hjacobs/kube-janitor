@@ -66,3 +66,6 @@ def test_rule_matches():
 
     resource = StatefulSet(None, {'metadata': {'namespace': 'ns-1', 'name': 'ss-1'}})
     assert not rule.matches(resource)
+
+    resource = StatefulSet(None, {'metadata': {'namespace': 'ns-1', 'name': 'ss-1', 'labels': {'app': 'x'}}})
+    assert not rule.matches(resource)
