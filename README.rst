@@ -85,6 +85,19 @@ Available command line options:
 ``--rules-file``
     Optional: filename pointing to a YAML file with a list of rules to apply TTL values to arbitrary Kubernetes objects, e.g. to delete all deployments without a certain label automatically after N days. See Rules File configuration section below.
 
+Example flags:
+
+``--interval=20``
+
+``--include-resources=deployments,pods``
+
+``--exclude-resources=replicasets``
+
+``--include-namespaces=default,kube-public``
+
+``--exclude-namespaces=kube-system``
+
+``--rules-file=/config/my-rules-file.yml``
 
 Rules File
 ==========
