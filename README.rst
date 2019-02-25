@@ -78,10 +78,12 @@ Available command line options:
     Include resources for clean up (default: all resources), can also be configured via environment variable ``INCLUDE_RESOURCES``. This option can be used if you want to clean up only certain resource types, e.g. only ``deployments``.
 ``--exclude-resources``
     Exclude resources from clean up (default: events,controllerrevisions), can also be configured via environment variable ``EXCLUDE_RESOURCES``.
+    This option takes precedence over ``--include-resources``, i.e. ``--exclude-resources=foos`` in combination with ``--include-resources=foos,bars`` would make ``kube-janitor`` only process ``bars`` resources.
 ``--include-namespaces``
     Include namespaces for clean up (default: all namespaces), can also be configured via environment variable ``INCLUDE_NAMESPACES``
 ``--exclude-namespaces``
-    Exclude namespaces from clean up (default: kube-system), can also be configured via environment variable ``EXCLUDE_NAMESPACES``
+    Exclude namespaces from clean up (default: kube-system), can also be configured via environment variable ``EXCLUDE_NAMESPACES``.
+    This option takes precedence over ``--include-namespaces``, i.e. ``--exclude-namespaces=ns1`` in combination with ``--include-namespaces=ns1,ns2`` would only process resources in the ``ns2`` namespace.
 ``--rules-file``
     Optional: filename pointing to a YAML file with a list of rules to apply TTL values to arbitrary Kubernetes objects, e.g. to delete all deployments without a certain label automatically after N days. See Rules File configuration section below.
 
