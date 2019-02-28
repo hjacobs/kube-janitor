@@ -5,7 +5,6 @@ name = "pypi"
 
 [packages]
 pykube = "*"
-pytz = "*"
 jmespath = "*"
 
 [dev-packages]
