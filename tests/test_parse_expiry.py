@@ -16,3 +16,5 @@ def test_parse_expiry_output_type():
 
 def test_parse_expiry_output_value_is_correct():
     assert parse_expiry('2008-09-26T01:51:42Z') == datetime.datetime(2008, 9, 26, 1, 51, 42)
+    assert parse_expiry('2008-09-26T01:51') == datetime.datetime(2008, 9, 26, 1, 51, 0)
+    assert parse_expiry('2008-09-26') == datetime.datetime(2008, 9, 26, 0, 0, 0)

@@ -120,7 +120,7 @@ def handle_resource_on_ttl(resource, rules, dry_run: bool):
 
 
 def handle_resource_on_expiry(resource, rules, dry_run: bool):
-    counter = {'resources-processed-expiry': 1}
+    counter = {}
 
     expiry = resource.annotations.get(EXPIRY_ANNOTATION)
     if expiry:
@@ -132,13 +132,13 @@ def handle_resource_on_expiry(resource, rules, dry_run: bool):
         else:
             counter[f'{resource.endpoint}-with-expiry'] = 1
             if datetime.datetime.utcnow() > expiry_timestamp:
-                message = f'{resource.kind} {resource.name} with {expiry} has expired and will be deleted ({reason})'
+                message = f'{resource.kind} {resource.name} expired on {expiry} and will be deleted ({reason})'
                 logger.info(message)
-                create_event(resource, message, "reason - current time has passes the expiry date", dry_run=dry_run)
+                create_event(resource, message, "ExpiryTimeReached", dry_run=dry_run)
                 delete(resource, dry_run=dry_run)
-                counter[f'{resource.endpoint}-with-expiry-deleted'] = 1
+                counter[f'{resource.endpoint}-deleted'] = 1
             else:
-                logging.debug(f'{resource.kind} {resource.name} with {expiry} has not expired')
+                logging.debug(f'{resource.kind} {resource.name} will expire on {expiry}')
 
     return counter
 

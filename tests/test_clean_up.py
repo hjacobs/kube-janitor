@@ -29,7 +29,7 @@ def test_handle_resource_no_ttl():
 def test_handle_resource_no_expiry():
     resource = Namespace(None, {'metadata': {'name': 'foo'}})
     counter = handle_resource_on_expiry(resource, [], dry_run=True)
-    assert counter == {'resources-processed-expiry': 1}
+    assert counter == {}
 
 
 def test_handle_resource_ttl_annotation():
@@ -45,7 +45,7 @@ def test_handle_resource_expiry_annotation():
         'name': 'foo',
         'annotations': {'janitor/expires': '2050-09-26T01:51:42Z'}}})
     counter = handle_resource_on_expiry(resource, [], dry_run=True)
-    assert counter == {'resources-processed-expiry': 1, 'namespaces-with-expiry': 1}
+    assert counter == {'namespaces-with-expiry': 1}
 
 
 def test_handle_resource_ttl_expired():
@@ -59,7 +59,7 @@ def test_handle_resource_expiry_expired():
         'name': 'foo',
         'annotations': {'janitor/expires': '2001-09-26T01:51:42Z'}}})
     counter = handle_resource_on_expiry(resource, [], dry_run=True)
-    assert counter == {'resources-processed-expiry': 1, 'namespaces-with-expiry': 1, 'namespaces-with-expiry-deleted': 1}
+    assert counter == {'namespaces-with-expiry': 1, 'namespaces-deleted': 1}
 
 
 def test_clean_up_default():
@@ -143,9 +143,9 @@ def test_ignore_invalid_expiry():
 
     api_mock.get = get
     counter = clean_up(api_mock, ALL, [], ALL, [], [], dry_run=False)
-    assert counter['resources-processed-expiry'] == 2
+    assert counter['resources-processed'] == 2
     assert counter['customfoos-with-expiry'] == 0
-    assert counter['customfoos-with-expiry-deleted'] == 0
+    assert counter['customfoos-deleted'] == 0
     assert not api_mock.delete.called
 
 
@@ -221,15 +221,15 @@ def test_clean_up_custom_resource_on_expiry():
     counter = clean_up(api_mock, ALL, [], ALL, [], [], dry_run=False)
 
     # namespace ns-1 and object foo-1
-    assert counter['resources-processed-expiry'] == 2
+    assert counter['resources-processed'] == 2
     assert counter['customfoos-with-expiry'] == 1
-    assert counter['customfoos-with-expiry-deleted'] == 1
+    assert counter['customfoos-deleted'] == 1
 
     api_mock.post.assert_called_once()
     _, kwargs = api_mock.post.call_args
     assert kwargs['url'] == 'events'
     data = json.loads(kwargs['data'])
-    assert data['reason'] == 'reason - current time has passes the expiry date'
+    assert data['reason'] == 'ExpiryTimeReached'
     assert 'annotation janitor/expires is set' in data['message']
     involvedObject = {'kind': 'CustomFoo', 'name': 'foo-1', 'namespace': 'ns-1', 'apiVersion': 'srcco.de/v1', 'resourceVersion': None, 'uid': None}
     assert data['involvedObject'] == involvedObject

@@ -31,7 +31,7 @@ TTL
 Expiry date
 -----------
 * Deploy the janitor to a test (non-prod) cluster and use namespaces with a expire date (``janitor/expires: 2020-01-17T15:14:38Z`` on the namespace object)
-* Annotate your temporary manual test nginx deployment with ``kubectl annotate deploy nginx janitor/expires=2020-01-17T15:14:38Z`` to automatically delete it by the time
+* Annotate your temporary manual test nginx deployment with ``kubectl annotate deploy nginx janitor/expires=2020-01-01`` to automatically delete it at midnight UTC of 1st of January 2020.
 
 
 Usage
@@ -72,7 +72,9 @@ Kubernetes annotations:
     Maximum time to live (TTL) for the annotated resource. Annotation value must be a string composed of a integer value and a unit suffix (one of ``s``, ``m``, ``h``, ``d``, or ``w``), e.g. ``120s`` (120 seconds), ``5m`` (5 minutes), ``8h`` (8 hours), ``7d`` (7 days), or ``2w`` (2 weeks).
     Note that the actual time of deletion depends on the Janitor's clean up interval. The resource will be deleted if its age (delta between now and the resource creation time) is greater than the specified TTL.
 ``janitor/expires``
-    Absolute timestamp in the format ``YYYY-MM-DDTHH:MM:SSZ`` (UTC) to mark the resource for deletion after the specified date/time. Example annotation value: ``2019-02-28T20:40:00Z``.
+    Absolute timestamp in the format ``YYYY-MM-DDTHH:MM:SSZ``, ``YYYY-MM-DDTHH:MM`` or ``YYYY-MM-DD`` to mark the resource for deletion after the specified date/time.
+    The date format ``YYYY-MM-DD`` is short for ``YYYY-MM-DDT00:00:00Z``, i.e. the resource will expire at midnight UTC of the specified date.
+    Example annotation values: ``2019-02-28T20:40:00Z``, ``2019-02-28T20:40``, ``2019-02-28``.
 
 Available command line options:
 
