@@ -1,7 +1,8 @@
 import os
-
+import datetime
 import pykube
 import re
+
 
 TIME_UNIT_TO_SECONDS = {
     's': 1,
@@ -12,8 +13,8 @@ TIME_UNIT_TO_SECONDS = {
 }
 
 FACTOR_TO_TIME_UNIT = list(sorted([(v, k) for k, v in TIME_UNIT_TO_SECONDS.items()], reverse=True))
-
 TTL_PATTERN = re.compile(r'^(\d+)([smhdw])$')
+DATETIME_PATTERN = re.compile(r'^(\d{4})-(\d{2})-(\d{2})(T)(\d{2})(:)(\d{2})(:)(\d{2})(Z)$')
 
 
 def parse_ttl(ttl: str) -> int:
@@ -31,6 +32,14 @@ def parse_ttl(ttl: str) -> int:
         raise ValueError(f'Unknown time unit "{unit}" for TTL "{ttl}"')
 
     return value * multiplier
+
+
+def parse_expiry(expiry: str) -> datetime:
+    match = DATETIME_PATTERN.match(expiry)
+    if not match:
+        raise ValueError(
+            f'expiry value "{expiry}" does not conform format 2019-02-25T09:26:14Z')
+    return datetime.datetime.strptime(expiry, '%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=None)
 
 
 def format_duration(seconds: int) -> str:

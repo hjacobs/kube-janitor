@@ -4,12 +4,14 @@ import pykube
 
 from collections import Counter
 
-from .helper import parse_ttl, format_duration
+from .helper import parse_ttl, parse_expiry, format_duration
 from .resources import get_namespaced_resource_types
 from pykube import Namespace, Event
 
 logger = logging.getLogger(__name__)
+
 TTL_ANNOTATION = 'janitor/ttl'
+EXPIRY_ANNOTATION = 'janitor/expires'
 
 
 def matches_resource_filter(resource, include_resources: frozenset, exclude_resources: frozenset,
@@ -39,7 +41,7 @@ def get_age(resource):
     return age
 
 
-def create_event(resource, message: str, dry_run: bool):
+def create_event(resource, message: str, reason: str, dry_run: bool):
     now = datetime.datetime.utcnow()
     timestamp = now.strftime('%Y-%m-%dT%H:%M:%SZ')
     event = Event(resource.api, {
@@ -48,7 +50,7 @@ def create_event(resource, message: str, dry_run: bool):
         'count': 1,
         'firstTimestamp': timestamp,
         'lastTimestamp': timestamp,
-        'reason': 'TimeToLiveExpired',
+        'reason': reason,
         'involvedObject': {
             'apiVersion': resource.version,
             'name': resource.name,
@@ -82,7 +84,7 @@ def delete(resource, dry_run: bool):
             logger.error(f'Could not delete {resource.kind} {resource.namespace}/{resource.name}: {e}')
 
 
-def handle_resource(resource, rules, dry_run: bool):
+def handle_resource_on_ttl(resource, rules, dry_run: bool):
     counter = {'resources-processed': 1}
 
     ttl = resource.annotations.get(TTL_ANNOTATION)
@@ -110,9 +112,33 @@ def handle_resource(resource, rules, dry_run: bool):
             if age.total_seconds() > ttl_seconds:
                 message = f'{resource.kind} {resource.name} with {ttl} TTL is {age_formatted} old and will be deleted ({reason})'
                 logger.info(message)
-                create_event(resource, message, dry_run=dry_run)
+                create_event(resource, message, "TimeToLiveExpired", dry_run=dry_run)
                 delete(resource, dry_run=dry_run)
                 counter[f'{resource.endpoint}-deleted'] = 1
+
+    return counter
+
+
+def handle_resource_on_expiry(resource, rules, dry_run: bool):
+    counter = {'resources-processed-expiry': 1}
+
+    expiry = resource.annotations.get(EXPIRY_ANNOTATION)
+    if expiry:
+        reason = f'annotation {EXPIRY_ANNOTATION} is set'
+        try:
+            expiry_timestamp = parse_expiry(expiry)
+        except ValueError as e:
+            logger.info(f'Ignoring invalid expiry date on {resource.kind} {resource.name}: {e}')
+        else:
+            counter[f'{resource.endpoint}-with-expiry'] = 1
+            if datetime.datetime.utcnow() > expiry_timestamp:
+                message = f'{resource.kind} {resource.name} with {expiry} has expired and will be deleted ({reason})'
+                logger.info(message)
+                create_event(resource, message, "reason - current time has passes the expiry date", dry_run=dry_run)
+                delete(resource, dry_run=dry_run)
+                counter[f'{resource.endpoint}-with-expiry-deleted'] = 1
+            else:
+                logging.debug(f'{resource.kind} {resource.name} with {expiry} has not expired')
 
     return counter
 
@@ -129,7 +155,8 @@ def clean_up(api,
 
     for namespace in Namespace.objects(api):
         if matches_resource_filter(namespace, include_resources, exclude_resources, include_namespaces, exclude_namespaces):
-            counter.update(handle_resource(namespace, rules, dry_run))
+            counter.update(handle_resource_on_ttl(namespace, rules, dry_run))
+            counter.update(handle_resource_on_expiry(namespace, rules, dry_run))
         else:
             logger.debug(f'Skipping {namespace.kind} {namespace}')
 
@@ -156,8 +183,8 @@ def clean_up(api,
                 logger.error(f'Could not list {_type.kind} objects: {e}')
 
     for resource in filtered_resources:
-        counter.update(handle_resource(resource, rules, dry_run))
-
+        counter.update(handle_resource_on_ttl(resource, rules, dry_run))
+        counter.update(handle_resource_on_expiry(resource, rules, dry_run))
     stats = ', '.join([f'{k}={v}' for k, v in counter.items()])
     logger.info(f'Clean up run completed: {stats}')
     return counter
