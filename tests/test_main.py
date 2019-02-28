@@ -65,11 +65,9 @@ def test_main_continue_on_failure(kubeconfig, monkeypatch):
 
     def mock_clean_up(*args, **kwargs):
         calls.append(args)
-        print(calls)
         if len(calls) == 1:
             raise Exception('clean up fails on first run')
         elif len(calls) == 2:
-            print(mock_handler.shutdown_now)
             mock_handler.shutdown_now = True
 
     monkeypatch.setattr('kube_janitor.main.clean_up', mock_clean_up)
