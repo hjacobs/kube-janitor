@@ -51,3 +51,30 @@ def test_main_with_rules(tmpdir, kubeconfig, monkeypatch):
     main(['--dry-run', '--once', f'--rules-file={p}'])
 
     mock_clean_up.assert_called_once()
+
+
+def test_main_continue_on_failure(kubeconfig, monkeypatch):
+    monkeypatch.setattr(os.path, 'expanduser', lambda x: str(kubeconfig))
+
+    mock_shutdown = MagicMock()
+    mock_handler = MagicMock()
+    mock_handler.shutdown_now = False
+    mock_shutdown.GracefulShutdown.return_value = mock_handler
+
+    calls = []
+
+    def mock_clean_up(*args, **kwargs):
+        calls.append(args)
+        print(calls)
+        if len(calls) == 1:
+            raise Exception('clean up fails on first run')
+        elif len(calls) == 2:
+            print(mock_handler.shutdown_now)
+            mock_handler.shutdown_now = True
+
+    monkeypatch.setattr('kube_janitor.main.clean_up', mock_clean_up)
+    monkeypatch.setattr('kube_janitor.main.shutdown', mock_shutdown)
+
+    main(['--dry-run', '--interval=0'])
+
+    assert len(calls) == 2
