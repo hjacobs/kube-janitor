@@ -30,8 +30,8 @@ TTL
 
 Expiry date
 -----------
-* Deploy the janitor to a test (non-prod) cluster and use namespaces with a expire date (``janitor/expires: 2020-01-17T15:14:38Z`` on the namespace object)
-* Annotate your temporary manual test nginx deployment with ``kubectl annotate deploy nginx janitor/expires=2020-01-01`` to automatically delete it at midnight UTC of 1st of January 2020.
+* Deploy the janitor to a test (non-prod) cluster and use namespaces with an expiry date (``janitor/expires: 2020-01-17T15:14:38Z`` on the namespace object)
+* Annotate your temporary manual test nginx deployment with ``kubectl annotate deploy nginx janitor/expires=2020-01-01`` to automatically delete it at midnight (UTC) of 1st of January 2020.
 
 
 Usage
@@ -66,7 +66,7 @@ Configuration
 
 The janitor is configured via command line args, environment variables, Kubernetes annotations, and an optional YAML rules file.
 
-Kubernetes annotations:
+Supported Kubernetes annotations:
 
 ``janitor/ttl``
     Maximum time to live (TTL) for the annotated resource. Annotation value must be a string composed of a integer value and a unit suffix (one of ``s``, ``m``, ``h``, ``d``, or ``w``), e.g. ``120s`` (120 seconds), ``5m`` (5 minutes), ``8h`` (8 hours), ``7d`` (7 days), or ``2w`` (2 weeks).
