@@ -14,15 +14,12 @@ Kubernetes Janitor
    :target: https://hub.docker.com/r/hjacobs/kube-janitor
    :alt: Docker pulls
 
-Kubernetes Janitor cleans up (deletes) Kubernetes resources on:
-- a configured TTL (time to live).
-- a configured expiry date
-It processes all namespaces and all namespaced resources including custom resource definitions (CRDs) and will delete them
-- if the ``janitor/ttl`` annotation or a TTL rule indicates the resource as expired.
-- if the ``janitor/expires`` annotation indicates the resource has expired.
+Kubernetes Janitor cleans up (deletes) Kubernetes resources on (1) a configured TTL (time to live) or (2) a configured expiry date (absolute timestamp).
 
-Example use cases:
-==================
+It processes all namespaces and all namespaced resources including custom resource definitions (CRDs) and will delete them (1) if the ``janitor/ttl`` annotation or a TTL rule indicates the resource as expired, or (2) if the ``janitor/expires`` annotation marks the resource as expired.
+
+Example Use Cases
+=================
 
 TTL
 ---
@@ -31,7 +28,7 @@ TTL
 * Automatically set ``janitor/ttl`` on resources created by your CI/CD pipeline for pull requests (so PR tests can run and resources are cleaned up later)
 * Define a rule to automatically delete resources after 4 days if required labels were not set (see Rules File below)
 
-Expire date
+Expiry date
 -----------
 * Deploy the janitor to a test (non-prod) cluster and use namespaces with a expire date (``janitor/expires: 2020-01-17T15:14:38Z`` on the namespace object)
 * Annotate your temporary manual test nginx deployment with ``kubectl annotate deploy nginx janitor/expires=2020-01-17T15:14:38Z`` to automatically delete it by the time
@@ -74,6 +71,8 @@ Kubernetes annotations:
 ``janitor/ttl``
     Maximum time to live (TTL) for the annotated resource. Annotation value must be a string composed of a integer value and a unit suffix (one of ``s``, ``m``, ``h``, ``d``, or ``w``), e.g. ``120s`` (120 seconds), ``5m`` (5 minutes), ``8h`` (8 hours), ``7d`` (7 days), or ``2w`` (2 weeks).
     Note that the actual time of deletion depends on the Janitor's clean up interval. The resource will be deleted if its age (delta between now and the resource creation time) is greater than the specified TTL.
+``janitor/expires``
+    Absolute timestamp in the format ``YYYY-MM-DDTHH:MM:SSZ`` (UTC) to mark the resource for deletion after the specified date/time. Example annotation value: ``2019-02-28T20:40:00Z``.
 
 Available command line options:
 
