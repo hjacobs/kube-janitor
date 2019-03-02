@@ -140,6 +140,13 @@ When using the ``--rules-file`` option, the path needs to point to a valid YAML 
       - "*"
       jmespath: "metadata.namespace == 'temp'"
       ttl: 3d
+    # require the "foo" pod label for all new deployments starting April 2019
+    - id: require-foo-label-april-2019
+      resources:
+      - deployments
+      - statefulsets
+      jmespath: "!(spec.template.metadata.labels.foo) && metadata.creationTimestamp > '2019-04-01'"
+      ttl: 7d
 
 The first matching rule will define the TTL (``ttl`` field). Kubernetes objects with a ``janitor/ttl`` annotation will not be matched against any rule.
 
