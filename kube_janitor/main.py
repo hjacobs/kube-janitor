@@ -18,7 +18,8 @@ def main(args=None):
     logging.basicConfig(format='%(asctime)s %(levelname)s: %(message)s',
                         level=logging.DEBUG if args.debug else logging.INFO)
 
-    logger.info(f'Janitor v{__version__} started with config {args}')
+    config_str = ', '.join(f'{k}={v}' for k, v in sorted(vars(args).items()))
+    logger.info(f'Janitor v{__version__} started with {config_str}')
 
     if args.dry_run:
         logger.info('**DRY-RUN**: no deletions will be performed!')
