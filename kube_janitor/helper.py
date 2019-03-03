@@ -1,4 +1,5 @@
 import os
+
 import datetime
 import pykube
 import re
@@ -70,6 +71,6 @@ def get_kube_api():
         config = pykube.KubeConfig.from_service_account()
     except FileNotFoundError:
         # local testing
-        config = pykube.KubeConfig.from_file(os.getenv('KUBECONFIG', os.path.expanduser('~/.kube/config')))
+        config = pykube.KubeConfig.from_file(os.getenv('KUBECONFIG', '~/.kube/config'))
     api = pykube.HTTPClient(config)
     return api
