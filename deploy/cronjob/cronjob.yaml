@@ -17,7 +17,7 @@ spec:
           containers:
           - name: janitor
             # see https://github.com/hjacobs/kube-janitor/releases
-            image: hjacobs/kube-janitor:0.5
+            image: hjacobs/kube-janitor:0.6
             args:
               # dry run by default, remove to perform clean up
               - --dry-run

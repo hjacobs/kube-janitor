@@ -3,7 +3,7 @@ kind: Deployment
 metadata:
   labels:
     application: kube-janitor
-    version: v0.5
+    version: v0.6
   name: kube-janitor
 spec:
   replicas: 1
@@ -14,13 +14,13 @@ spec:
     metadata:
       labels:
         application: kube-janitor
-        version: v0.5
+        version: v0.6
     spec:
       serviceAccountName: kube-janitor
       containers:
       - name: janitor
         # see https://github.com/hjacobs/kube-janitor/releases
-        image: hjacobs/kube-janitor:0.5
+        image: hjacobs/kube-janitor:0.6
         args:
           # dry run by default, remove to perform clean up
           - --dry-run
