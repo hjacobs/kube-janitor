@@ -13,6 +13,7 @@ def get_parser():
     parser.add_argument('--debug', '-d', help='Debug mode: print more information', action='store_true')
     parser.add_argument('--once', help='Run loop only once and exit', action='store_true')
     parser.add_argument('--interval', type=int, help='Loop interval (default: 30s)', default=30)
+    parser.add_argument('--delete-notification', type=int, help='Send an event seconds before to warn of the deletion', required=False)
     parser.add_argument('--include-resources', help='Resources to consider for clean up (default: all)',
                         default=os.getenv('INCLUDE_RESOURCES', 'all'))
     parser.add_argument('--exclude-resources', help=f'Resources to exclude from clean up (default: {DEFAULT_EXCLUDE_RESOURCES})',

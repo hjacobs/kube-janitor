@@ -22,20 +22,20 @@ def test_matches_resource_filter():
 
 def test_handle_resource_no_ttl():
     resource = Namespace(None, {'metadata': {'name': 'foo'}})
-    counter = handle_resource_on_ttl(resource, [], dry_run=True)
+    counter = handle_resource_on_ttl(resource, [], None, dry_run=True)
     assert counter == {'resources-processed': 1}
 
 
 def test_handle_resource_no_expiry():
     resource = Namespace(None, {'metadata': {'name': 'foo'}})
-    counter = handle_resource_on_expiry(resource, [], dry_run=True)
+    counter = handle_resource_on_expiry(resource, [], None, dry_run=True)
     assert counter == {}
 
 
 def test_handle_resource_ttl_annotation():
     # TTL is far in the future
     resource = Namespace(None, {'metadata': {'name': 'foo', 'annotations': {'janitor/ttl': '999w'}, 'creationTimestamp': '2019-01-17T20:59:12Z'}})
-    counter = handle_resource_on_ttl(resource, [], dry_run=True)
+    counter = handle_resource_on_ttl(resource, [], None, dry_run=True)
     assert counter == {'resources-processed': 1, 'namespaces-with-ttl': 1}
 
 
@@ -44,13 +44,13 @@ def test_handle_resource_expiry_annotation():
     resource = Namespace(None, {'metadata': {
         'name': 'foo',
         'annotations': {'janitor/expires': '2050-09-26T01:51:42Z'}}})
-    counter = handle_resource_on_expiry(resource, [], dry_run=True)
+    counter = handle_resource_on_expiry(resource, [], None, dry_run=True)
     assert counter == {'namespaces-with-expiry': 1}
 
 
 def test_handle_resource_ttl_expired():
     resource = Namespace(None, {'metadata': {'name': 'foo', 'annotations': {'janitor/ttl': '1s'}, 'creationTimestamp': '2019-01-17T20:59:12Z'}})
-    counter = handle_resource_on_ttl(resource, [], dry_run=True)
+    counter = handle_resource_on_ttl(resource, [], None, dry_run=True)
     assert counter == {'resources-processed': 1, 'namespaces-with-ttl': 1, 'namespaces-deleted': 1}
 
 
@@ -58,7 +58,7 @@ def test_handle_resource_expiry_expired():
     resource = Namespace(None, {'metadata': {
         'name': 'foo',
         'annotations': {'janitor/expires': '2001-09-26T01:51:42Z'}}})
-    counter = handle_resource_on_expiry(resource, [], dry_run=True)
+    counter = handle_resource_on_expiry(resource, [], None, dry_run=True)
     assert counter == {'namespaces-with-expiry': 1, 'namespaces-deleted': 1}
 
 
@@ -79,7 +79,7 @@ def test_clean_up_default():
         response.json.return_value = data
         return response
     api_mock.get = get
-    counter = clean_up(api_mock, ALL, [], ALL, ['kube-system'], [], dry_run=False)
+    counter = clean_up(api_mock, ALL, [], ALL, ['kube-system'], [], None, dry_run=False)
 
     assert counter['resources-processed'] == 1
 
@@ -110,7 +110,7 @@ def test_ignore_invalid_ttl():
         return response
 
     api_mock.get = get
-    counter = clean_up(api_mock, ALL, [], ALL, [], [], dry_run=False)
+    counter = clean_up(api_mock, ALL, [], ALL, [], [], None, dry_run=False)
     assert counter['resources-processed'] == 2
     assert counter['customfoos-with-ttl'] == 0
     assert counter['customfoos-deleted'] == 0
@@ -142,7 +142,7 @@ def test_ignore_invalid_expiry():
         return response
 
     api_mock.get = get
-    counter = clean_up(api_mock, ALL, [], ALL, [], [], dry_run=False)
+    counter = clean_up(api_mock, ALL, [], ALL, [], [], None, dry_run=False)
     assert counter['resources-processed'] == 2
     assert counter['customfoos-with-expiry'] == 0
     assert counter['customfoos-deleted'] == 0
@@ -174,7 +174,7 @@ def test_clean_up_custom_resource_on_ttl():
         return response
 
     api_mock.get = get
-    counter = clean_up(api_mock, ALL, [], ALL, [], [], dry_run=False)
+    counter = clean_up(api_mock, ALL, [], ALL, [], [], None, dry_run=False)
 
     # namespace ns-1 and object foo-1
     assert counter['resources-processed'] == 2
@@ -218,7 +218,7 @@ def test_clean_up_custom_resource_on_expiry():
         return response
 
     api_mock.get = get
-    counter = clean_up(api_mock, ALL, [], ALL, [], [], dry_run=False)
+    counter = clean_up(api_mock, ALL, [], ALL, [], [], None, dry_run=False)
 
     # namespace ns-1 and object foo-1
     assert counter['resources-processed'] == 2
@@ -265,7 +265,7 @@ def test_clean_up_by_rule():
         return response
 
     api_mock.get = get
-    counter = clean_up(api_mock, ALL, [], ALL, [], [rule], dry_run=False)
+    counter = clean_up(api_mock, ALL, [], ALL, [], [rule], None, dry_run=False)
 
     # namespace ns-1 and object foo-1
     assert counter['resources-processed'] == 2

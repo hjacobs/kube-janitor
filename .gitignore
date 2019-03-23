@@ -10,3 +10,4 @@ dist/
 *.bak
 htmlcov/
 .pytest_cache/
+.vscode

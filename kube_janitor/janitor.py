@@ -1,17 +1,18 @@
 import datetime
 import logging
-import pykube
-
 from collections import Counter
 
-from .helper import parse_ttl, parse_expiry, format_duration
+import pykube
+from pykube import Event, Namespace
+
+from .helper import format_duration, parse_expiry, parse_ttl
 from .resources import get_namespaced_resource_types
-from pykube import Namespace, Event
 
 logger = logging.getLogger(__name__)
 
 TTL_ANNOTATION = 'janitor/ttl'
 EXPIRY_ANNOTATION = 'janitor/expires'
+NOTIFIED_ANNOTATION = 'janitor/notified'
 
 
 def matches_resource_filter(resource, include_resources: frozenset, exclude_resources: frozenset,
@@ -34,15 +35,48 @@ def matches_resource_filter(resource, include_resources: frozenset, exclude_reso
     return resource_included and not resource_excluded and namespace_included and not namespace_excluded
 
 
+def get_expire(resource, ttl_seconds) -> datetime:
+    creation_time = datetime.datetime.strptime(resource.metadata['creationTimestamp'], '%Y-%m-%dT%H:%M:%SZ')
+    return creation_time + datetime.timedelta(seconds=ttl_seconds)
+
+
+def get_delete_notification(expiry_timestamp, delete_notification) -> datetime:
+    return expiry_timestamp - datetime.timedelta(seconds=delete_notification)
+
+
+def add_notification_flag(resource, dry_run: bool):
+    if dry_run:
+        logger.info(f'**DRY-RUN**: {resource.kind} {resource.namespace}/{resource.name} would be annotated as janitor/notified: yes')
+    else:
+        resource.annotations[NOTIFIED_ANNOTATION] = "yes"
+        resource.update()
+
+
+def was_notified(resource):
+    return NOTIFIED_ANNOTATION in resource.annotations.keys()
+
+
 def get_age(resource):
     creation_time = datetime.datetime.strptime(resource.metadata['creationTimestamp'], '%Y-%m-%dT%H:%M:%SZ')
-    now = datetime.datetime.utcnow()
+    now = utcnow()
     age = now - creation_time
     return age
 
 
+def utcnow():
+    return datetime.datetime.utcnow()
+
+
+def send_delete_notification(resource, reason: str, expire: datetime, dry_run: bool):
+    formatted_expire_datetime = expire.strftime('%Y-%m-%dT%H:%M:%SZ')
+    message = f'{resource.kind} {resource.name} will be deleted at {formatted_expire_datetime} ({reason})'
+    logger.info(message)
+    create_event(resource, message, 'DeleteNotification', dry_run=dry_run)
+    add_notification_flag(resource, dry_run=dry_run)
+
+
 def create_event(resource, message: str, reason: str, dry_run: bool):
-    now = datetime.datetime.utcnow()
+    now = utcnow()
     timestamp = now.strftime('%Y-%m-%dT%H:%M:%SZ')
     event = Event(resource.api, {
         'metadata': {'namespace': resource.namespace, 'generateName': 'kube-janitor-'},
@@ -84,7 +118,7 @@ def delete(resource, dry_run: bool):
             logger.error(f'Could not delete {resource.kind} {resource.namespace}/{resource.name}: {e}')
 
 
-def handle_resource_on_ttl(resource, rules, dry_run: bool):
+def handle_resource_on_ttl(resource, rules, delete_notification: int, dry_run: bool):
     counter = {'resources-processed': 1}
 
     ttl = resource.annotations.get(TTL_ANNOTATION)
@@ -115,11 +149,16 @@ def handle_resource_on_ttl(resource, rules, dry_run: bool):
                 create_event(resource, message, "TimeToLiveExpired", dry_run=dry_run)
                 delete(resource, dry_run=dry_run)
                 counter[f'{resource.endpoint}-deleted'] = 1
+            if delete_notification:
+                expire = get_expire(resource, ttl_seconds)
+                delete_notification = get_delete_notification(expire, delete_notification)
+                if utcnow() > delete_notification and not was_notified(resource):
+                    send_delete_notification(resource, reason, expire, dry_run=dry_run)
 
     return counter
 
 
-def handle_resource_on_expiry(resource, rules, dry_run: bool):
+def handle_resource_on_expiry(resource, rules, delete_notification: int, dry_run: bool):
     counter = {}
 
     expiry = resource.annotations.get(EXPIRY_ANNOTATION)
@@ -131,7 +170,8 @@ def handle_resource_on_expiry(resource, rules, dry_run: bool):
             logger.info(f'Ignoring invalid expiry date on {resource.kind} {resource.name}: {e}')
         else:
             counter[f'{resource.endpoint}-with-expiry'] = 1
-            if datetime.datetime.utcnow() > expiry_timestamp:
+            now = utcnow()
+            if now > expiry_timestamp:
                 message = f'{resource.kind} {resource.name} expired on {expiry} and will be deleted ({reason})'
                 logger.info(message)
                 create_event(resource, message, "ExpiryTimeReached", dry_run=dry_run)
@@ -139,6 +179,10 @@ def handle_resource_on_expiry(resource, rules, dry_run: bool):
                 counter[f'{resource.endpoint}-deleted'] = 1
             else:
                 logging.debug(f'{resource.kind} {resource.name} will expire on {expiry}')
+            if delete_notification:
+                delete_notification = get_delete_notification(expiry_timestamp, delete_notification)
+                if now > delete_notification and not was_notified(resource):
+                    send_delete_notification(resource, reason, expiry_timestamp, dry_run=dry_run)
 
     return counter
 
@@ -149,14 +193,15 @@ def clean_up(api,
              include_namespaces: frozenset,
              exclude_namespaces: frozenset,
              rules: list,
+             delete_notification: int,
              dry_run: bool):
 
     counter = Counter()
 
     for namespace in Namespace.objects(api):
         if matches_resource_filter(namespace, include_resources, exclude_resources, include_namespaces, exclude_namespaces):
-            counter.update(handle_resource_on_ttl(namespace, rules, dry_run))
-            counter.update(handle_resource_on_expiry(namespace, rules, dry_run))
+            counter.update(handle_resource_on_ttl(namespace, rules, delete_notification, dry_run))
+            counter.update(handle_resource_on_expiry(namespace, rules, delete_notification, dry_run))
         else:
             logger.debug(f'Skipping {namespace.kind} {namespace}')
 
@@ -183,8 +228,8 @@ def clean_up(api,
                 logger.error(f'Could not list {_type.kind} objects: {e}')
 
     for resource in filtered_resources:
-        counter.update(handle_resource_on_ttl(resource, rules, dry_run))
-        counter.update(handle_resource_on_expiry(resource, rules, dry_run))
+        counter.update(handle_resource_on_ttl(resource, rules, delete_notification, dry_run))
+        counter.update(handle_resource_on_expiry(resource, rules, delete_notification, dry_run))
     stats = ', '.join([f'{k}={v}' for k, v in counter.items()])
     logger.info(f'Clean up run completed: {stats}')
     return counter
