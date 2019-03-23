@@ -2,7 +2,7 @@ import datetime
 import unittest
 
 from kube_janitor.janitor import (add_notification_flag,
-                                  get_delete_notification, get_expire,
+                                  get_delete_notification_time, get_ttl_expiry_time,
                                   handle_resource_on_expiry,
                                   handle_resource_on_ttl, was_notified)
 from pykube import Namespace
@@ -21,10 +21,10 @@ class TestDeleteNotification(unittest.TestCase):
     def setUp(self):
         self.mocked_resource = MockedNamespace(None, {'metadata': {'annotations': {}, 'name': 'mocked-namespace', 'creationTimestamp': '2019-03-11T11:10:09Z'}})
 
-    def test_get_expire(self):
+    def test_get_ttl_expiry_time(self):
         ttl_seconds = 300  # 5 minutes
         expected_expire = datetime.datetime.strptime('2019-03-11T11:15:09Z', '%Y-%m-%dT%H:%M:%SZ')
-        expire = get_expire(self.mocked_resource, ttl_seconds)
+        expire = get_ttl_expiry_time(self.mocked_resource, ttl_seconds)
         self.assertEqual(expire, expected_expire)
 
     def test_add_notification_flag(self):
@@ -43,7 +43,7 @@ class TestDeleteNotification(unittest.TestCase):
         expire = datetime.datetime.strptime('2019-03-11T11:15:09Z', '%Y-%m-%dT%H:%M:%SZ')
         expected_notification_datetime = datetime.datetime.strptime('2019-03-11T11:10:09Z', '%Y-%m-%dT%H:%M:%SZ')
         delete_notification = 300  # 5 minutes
-        self.assertEqual(get_delete_notification(expire, delete_notification), expected_notification_datetime)
+        self.assertEqual(get_delete_notification_time(expire, delete_notification), expected_notification_datetime)
 
     @unittest.mock.patch('kube_janitor.janitor.utcnow', return_value=datetime.datetime.strptime('2019-03-11T11:10:09Z', '%Y-%m-%dT%H:%M:%SZ'))
     @unittest.mock.patch('kube_janitor.janitor.add_notification_flag')

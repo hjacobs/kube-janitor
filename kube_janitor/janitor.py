@@ -35,12 +35,12 @@ def matches_resource_filter(resource, include_resources: frozenset, exclude_reso
     return resource_included and not resource_excluded and namespace_included and not namespace_excluded
 
 
-def get_expire(resource, ttl_seconds) -> datetime:
+def get_ttl_expiry_time(resource, ttl_seconds: int) -> datetime:
     creation_time = datetime.datetime.strptime(resource.metadata['creationTimestamp'], '%Y-%m-%dT%H:%M:%SZ')
     return creation_time + datetime.timedelta(seconds=ttl_seconds)
 
 
-def get_delete_notification(expiry_timestamp, delete_notification) -> datetime:
+def get_delete_notification_time(expiry_timestamp, delete_notification) -> datetime:
     return expiry_timestamp - datetime.timedelta(seconds=delete_notification)
 
 
@@ -149,11 +149,11 @@ def handle_resource_on_ttl(resource, rules, delete_notification: int, dry_run: b
                 create_event(resource, message, "TimeToLiveExpired", dry_run=dry_run)
                 delete(resource, dry_run=dry_run)
                 counter[f'{resource.endpoint}-deleted'] = 1
-            if delete_notification:
-                expire = get_expire(resource, ttl_seconds)
-                delete_notification = get_delete_notification(expire, delete_notification)
-                if utcnow() > delete_notification and not was_notified(resource):
-                    send_delete_notification(resource, reason, expire, dry_run=dry_run)
+            elif delete_notification:
+                expiry_time = get_ttl_expiry_time(resource, ttl_seconds)
+                notification_time = get_delete_notification_time(expiry_time, delete_notification)
+                if utcnow() > notification_time and not was_notified(resource):
+                    send_delete_notification(resource, reason, expiry_time, dry_run=dry_run)
 
     return counter
 
@@ -179,10 +179,10 @@ def handle_resource_on_expiry(resource, rules, delete_notification: int, dry_run
                 counter[f'{resource.endpoint}-deleted'] = 1
             else:
                 logging.debug(f'{resource.kind} {resource.name} will expire on {expiry}')
-            if delete_notification:
-                delete_notification = get_delete_notification(expiry_timestamp, delete_notification)
-                if now > delete_notification and not was_notified(resource):
-                    send_delete_notification(resource, reason, expiry_timestamp, dry_run=dry_run)
+                if delete_notification:
+                    notification_time = get_delete_notification_time(expiry_timestamp, delete_notification)
+                    if now > notification_time and not was_notified(resource):
+                        send_delete_notification(resource, reason, expiry_timestamp, dry_run=dry_run)
 
     return counter
 
