@@ -1,10 +1,11 @@
 import json
+import logging
 
 from unittest.mock import MagicMock
 
 from pykube.objects import NamespacedAPIObject
 from pykube import Namespace
-from kube_janitor.janitor import matches_resource_filter, handle_resource_on_ttl, handle_resource_on_expiry, clean_up
+from kube_janitor.janitor import matches_resource_filter, handle_resource_on_ttl, handle_resource_on_expiry, clean_up, delete
 from kube_janitor.rules import Rule
 
 ALL = frozenset(['all'])
@@ -18,6 +19,15 @@ def test_matches_resource_filter():
     assert not matches_resource_filter(foo_ns, ALL, [], ALL, ['foo'])
     assert not matches_resource_filter(foo_ns, ALL, ['namespaces'], ALL, [])
     assert matches_resource_filter(foo_ns, ALL, ['deployments'], ALL, ['kube-system'])
+
+
+def test_delete_namespace(caplog):
+    caplog.set_level(logging.INFO)
+    mock_api = MagicMock()
+    foo_ns = Namespace(mock_api, {'metadata': {'name': 'foo'}})
+    delete(foo_ns, dry_run=False)
+    assert 'Deleting Namespace foo..' in caplog.messages
+    mock_api.delete.assert_called_once()
 
 
 def test_handle_resource_no_ttl():

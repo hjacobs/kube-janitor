@@ -111,7 +111,7 @@ def delete(resource, dry_run: bool):
     if dry_run:
         logger.info(f'**DRY-RUN**: would delete {resource.kind} {resource.namespace}/{resource.name}')
     else:
-        logger.info(f'Deleting {resource.kind} {resource.namespace}/{resource.name}..')
+        logger.info(f'Deleting {resource.kind} {resource.namespace or ""}{"/" if resource.namespace else ""}{resource.name}..')
         try:
             resource.delete()
         except Exception as e:
