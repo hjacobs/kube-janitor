@@ -113,7 +113,9 @@ def delete(resource, dry_run: bool):
     else:
         logger.info(f'Deleting {resource.kind} {resource.namespace or ""}{"/" if resource.namespace else ""}{resource.name}..')
         try:
-            resource.delete()
+            # force cascading delete also for older objects (e.g. extensions/v1beta1)
+            # see https://kubernetes.io/docs/concepts/workloads/controllers/garbage-collection/#setting-the-cascading-deletion-policy
+            resource.delete(propagation_policy='Foreground')
         except Exception as e:
             logger.error(f'Could not delete {resource.kind} {resource.namespace}/{resource.name}: {e}')
 

@@ -201,7 +201,7 @@ def test_clean_up_custom_resource_on_ttl():
     assert data['involvedObject'] == involvedObject
 
     # verify that the delete call happened
-    api_mock.delete.assert_called_once_with(namespace='ns-1', url='customfoos/foo-1', version='srcco.de/v1')
+    api_mock.delete.assert_called_once_with(data='{"propagationPolicy": "Foreground"}', namespace='ns-1', url='customfoos/foo-1', version='srcco.de/v1')
 
 
 def test_clean_up_custom_resource_on_expiry():
@@ -245,7 +245,7 @@ def test_clean_up_custom_resource_on_expiry():
     assert data['involvedObject'] == involvedObject
 
     # verify that the delete call happened
-    api_mock.delete.assert_called_once_with(namespace='ns-1', url='customfoos/foo-1', version='srcco.de/v1')
+    api_mock.delete.assert_called_once_with(data='{"propagationPolicy": "Foreground"}', namespace='ns-1', url='customfoos/foo-1', version='srcco.de/v1')
 
 
 def test_clean_up_by_rule():
@@ -293,4 +293,4 @@ def test_clean_up_by_rule():
     assert data['involvedObject'] == involvedObject
 
     # verify that the delete call happened
-    api_mock.delete.assert_called_once_with(namespace='ns-1', url='customfoos/foo-1', version='srcco.de/v1')
+    api_mock.delete.assert_called_once_with(data='{"propagationPolicy": "Foreground"}', namespace='ns-1', url='customfoos/foo-1', version='srcco.de/v1')
