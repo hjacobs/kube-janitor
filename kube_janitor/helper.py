@@ -17,8 +17,12 @@ FACTOR_TO_TIME_UNIT = list(sorted([(v, k) for k, v in TIME_UNIT_TO_SECONDS.items
 TTL_PATTERN = re.compile(r'^(\d+)([smhdw])$')
 DATETIME_PATTERNS = ['%Y-%m-%dT%H:%M:%SZ', '%Y-%m-%dT%H:%M', '%Y-%m-%d']
 
+TTL_UNLIMITED = 'forever'
+
 
 def parse_ttl(ttl: str) -> int:
+    if ttl.lower() == TTL_UNLIMITED:
+        return -1
     match = TTL_PATTERN.match(ttl)
     if not match:
         raise ValueError(

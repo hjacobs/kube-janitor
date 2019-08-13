@@ -141,21 +141,22 @@ def handle_resource_on_ttl(resource, rules, delete_notification: int, dry_run: b
         except ValueError as e:
             logger.info(f'Ignoring invalid TTL on {resource.kind} {resource.name}: {e}')
         else:
-            counter[f'{resource.endpoint}-with-ttl'] = 1
-            age = get_age(resource)
-            age_formatted = format_duration(int(age.total_seconds()))
-            logger.debug(f'{resource.kind} {resource.name} with {ttl} TTL is {age_formatted} old')
-            if age.total_seconds() > ttl_seconds:
-                message = f'{resource.kind} {resource.name} with {ttl} TTL is {age_formatted} old and will be deleted ({reason})'
-                logger.info(message)
-                create_event(resource, message, "TimeToLiveExpired", dry_run=dry_run)
-                delete(resource, dry_run=dry_run)
-                counter[f'{resource.endpoint}-deleted'] = 1
-            elif delete_notification:
-                expiry_time = get_ttl_expiry_time(resource, ttl_seconds)
-                notification_time = get_delete_notification_time(expiry_time, delete_notification)
-                if utcnow() > notification_time and not was_notified(resource):
-                    send_delete_notification(resource, reason, expiry_time, dry_run=dry_run)
+            if ttl_seconds > 0:
+                counter[f'{resource.endpoint}-with-ttl'] = 1
+                age = get_age(resource)
+                age_formatted = format_duration(int(age.total_seconds()))
+                logger.debug(f'{resource.kind} {resource.name} with {ttl} TTL is {age_formatted} old')
+                if age.total_seconds() > ttl_seconds:
+                    message = f'{resource.kind} {resource.name} with {ttl} TTL is {age_formatted} old and will be deleted ({reason})'
+                    logger.info(message)
+                    create_event(resource, message, "TimeToLiveExpired", dry_run=dry_run)
+                    delete(resource, dry_run=dry_run)
+                    counter[f'{resource.endpoint}-deleted'] = 1
+                elif delete_notification:
+                    expiry_time = get_ttl_expiry_time(resource, ttl_seconds)
+                    notification_time = get_delete_notification_time(expiry_time, delete_notification)
+                    if utcnow() > notification_time and not was_notified(resource):
+                        send_delete_notification(resource, reason, expiry_time, dry_run=dry_run)
 
     return counter
 

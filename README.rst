@@ -71,6 +71,7 @@ Supported Kubernetes annotations:
 
 ``janitor/ttl``
     Maximum time to live (TTL) for the annotated resource. Annotation value must be a string composed of a integer value and a unit suffix (one of ``s``, ``m``, ``h``, ``d``, or ``w``), e.g. ``120s`` (120 seconds), ``5m`` (5 minutes), ``8h`` (8 hours), ``7d`` (7 days), or ``2w`` (2 weeks).
+    In case if resource should not be deleted by janitor - it is allowed to specify `forever`.
     Note that the actual time of deletion depends on the Janitor's clean up interval. The resource will be deleted if its age (delta between now and the resource creation time) is greater than the specified TTL.
 ``janitor/expires``
     Absolute timestamp in the format ``YYYY-MM-DDTHH:MM:SSZ``, ``YYYY-MM-DDTHH:MM`` or ``YYYY-MM-DD`` to mark the resource for deletion after the specified date/time.

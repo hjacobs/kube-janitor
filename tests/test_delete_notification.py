@@ -70,6 +70,20 @@ class TestDeleteNotification(unittest.TestCase):
         mocked_add_notification_flag.assert_called()
 
     @unittest.mock.patch('kube_janitor.janitor.utcnow', return_value=datetime.datetime.strptime('2019-03-11T11:13:09Z', '%Y-%m-%dT%H:%M:%SZ'))
+    @unittest.mock.patch('kube_janitor.janitor.add_notification_flag')
+    def test_handle_resource_ttl_annotation_with_forever_value_not_triggered(self, mocked_add_notification_flag, mocked_utcnow):
+        # Resource was created: 2019-03-11T11:05:00Z
+        # ttl is `forever`, so it will not expire
+        # Current datetime is: 2019-03-11T11:13:09Z
+        # Notification is 3 minutes: 180s. Has to notify after: 2019-03-11T11:12:00Z
+        resource = Namespace(None, {'metadata': {'name': 'foo', 'annotations': {'janitor/ttl': 'forever'}, 'creationTimestamp': '2019-03-11T11:05:00Z'}})
+        delete_notification = 180
+        counter = handle_resource_on_ttl(resource, [], delete_notification, dry_run=True)
+        self.assertEqual(1, counter['resources-processed'])
+        self.assertEqual(1, len(counter))
+        mocked_add_notification_flag.assert_not_called()
+
+    @unittest.mock.patch('kube_janitor.janitor.utcnow', return_value=datetime.datetime.strptime('2019-03-11T11:13:09Z', '%Y-%m-%dT%H:%M:%SZ'))
     @unittest.mock.patch('kube_janitor.janitor.create_event')
     def test_handle_resource_ttl_annotation_notification_event(self, mocked_create_event, mocked_utcnow):
         # Resource was created: 2019-03-11T11:05:00Z
