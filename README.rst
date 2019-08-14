@@ -14,6 +14,10 @@ Kubernetes Janitor
    :target: https://hub.docker.com/r/hjacobs/kube-janitor
    :alt: Docker pulls
 
+.. image:: https://img.shields.io/badge/calver-YY.MM.MICRO-22bfda.svg
+   :target: http://calver.org/
+   :alt: CalVer versioning scheme
+
 Kubernetes Janitor cleans up (deletes) Kubernetes resources on (1) a configured TTL (time to live) or (2) a configured expiry date (absolute timestamp).
 
 It processes all namespaces and all namespaced resources including custom resource definitions (CRDs) and will delete them (1) if the ``janitor/ttl`` annotation or a TTL rule indicates the resource as expired, or (2) if the ``janitor/expires`` annotation marks the resource as expired.
