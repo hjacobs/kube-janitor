@@ -94,6 +94,44 @@ def test_clean_up_default():
     assert counter['resources-processed'] == 1
 
 
+def test_ignore_nonlistable_api_group():
+    api_mock = MagicMock(spec=NamespacedAPIObject, name='APIMock')
+
+    def get(**kwargs):
+        if kwargs.get('url') == 'namespaces':
+            data = {'items': [{'metadata': {'name': 'ns-1'}}]}
+        elif kwargs.get('url') == 'customfoos':
+            data = {'items': [{'metadata': {
+                'name': 'foo-1',
+                'namespace': 'ns-1',
+                'creationTimestamp': '2019-01-17T15:14:38Z',
+                # invalid TTL (no unit suffix)
+                'annotations': {'janitor/ttl': '123'}}}]}
+        elif kwargs['version'] == 'v1':
+            data = {'resources': []}
+        elif kwargs['version'] == 'srcco.de/v1':
+            data = {'resources': [{'kind': 'CustomFoo', 'name': 'customfoos', 'namespaced': True, 'verbs': ['delete']}]}
+        elif kwargs['version'] == 'kaput.srcco.de/v1':
+            raise Exception('Catch me if you can!')
+        elif kwargs['version'] == '/apis':
+            data = {'groups': [
+                {'preferredVersion': {'groupVersion': 'kaput.srcco.de/v1'}},
+                {'preferredVersion': {'groupVersion': 'srcco.de/v1'}},
+            ]}
+        else:
+            data = {}
+        response = MagicMock()
+        response.json.return_value = data
+        return response
+
+    api_mock.get = get
+    counter = clean_up(api_mock, ALL, [], ALL, [], [], None, dry_run=False)
+    assert counter['resources-processed'] == 2
+    assert counter['customfoos-with-ttl'] == 0
+    assert counter['customfoos-deleted'] == 0
+    assert not api_mock.delete.called
+
+
 def test_ignore_invalid_ttl():
     api_mock = MagicMock(spec=NamespacedAPIObject, name='APIMock')
 

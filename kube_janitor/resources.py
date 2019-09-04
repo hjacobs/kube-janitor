@@ -26,13 +26,16 @@ def discover_namespaced_api_resources(api):
     r = api.get(version='/apis')
     r.raise_for_status()
     for group in r.json()['groups']:
-        pref_version = group['preferredVersion']['groupVersion']
-        logger.debug(f'Collecting resources for {pref_version}..')
-        r2 = api.get(version=pref_version)
-        r2.raise_for_status()
-        for resource in r2.json()['resources']:
-            if resource['namespaced'] and 'delete' in resource['verbs'] and '/' not in resource['name']:
-                yield pref_version, resource
+        try:
+            pref_version = group['preferredVersion']['groupVersion']
+            logger.debug(f'Collecting resources in API group {pref_version}..')
+            r2 = api.get(version=pref_version)
+            r2.raise_for_status()
+            for resource in r2.json()['resources']:
+                if resource['namespaced'] and 'delete' in resource['verbs'] and '/' not in resource['name']:
+                    yield pref_version, resource
+        except Exception as e:
+            logger.error(f'Could not collect resources in API group {pref_version}: {e}')
 
 
 def get_namespaced_resource_types(api):
