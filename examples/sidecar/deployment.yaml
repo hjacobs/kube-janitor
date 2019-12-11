@@ -23,10 +23,10 @@ spec:
         - name: nginx-controller
           image: nginx
         - name: kube-janitor-sidecar
-          image: hjacobs/kube-janitor:0.3
+          image: hjacobs/kube-janitor:19.9.0
           args:
             - --interval=60
-            - --include-resources=pods,deployments,replicasets
+            - --include-resources=deployments
             - --include-namespaces=kube-public
           resources:
             limits:
