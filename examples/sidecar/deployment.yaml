@@ -1,0 +1,40 @@
+# Inspired from https://kubernetes.io/docs/tasks/access-application-cluster/communicate-containers-same-pod-shared-volume/
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: two-containers
+  namespace: kube-public
+  annotations:
+    janitor/ttl: 1m
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: two-containers
+  template:
+    metadata:
+      annotations:
+        janitor/ttl: 1m
+      labels:
+        app: two-containers
+    spec:
+      serviceAccount: kube-janitor
+      containers:
+        - name: nginx-controller
+          image: nginx
+        - name: kube-janitor-sidecar
+          image: hjacobs/kube-janitor:0.3
+          args:
+            - --interval=60
+            - --include-resources=pods,deployments,replicasets
+            - --include-namespaces=kube-public
+          resources:
+            limits:
+              memory: 100Mi
+            requests:
+              cpu: 5m
+              memory: 100Mi
+          securityContext:
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 1000
