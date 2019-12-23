@@ -6,10 +6,16 @@ TAG              ?= $(VERSION)
 
 default: docker
 
-test:
-	pipenv run flake8
-	pipenv run coverage run --source=kube_janitor -m py.test
-	pipenv run coverage report
+.PHONY: install
+install:
+	poetry install
+
+test: install
+	poetry run flake8
+	poetry run black --check kube_janitor
+	poetry run mypy --ignore-missing-imports kube_janitor
+	poetry run coverage run --source=kube_janitor -m py.test -v
+	poetry run coverage report
 
 docker: 
 	docker build --build-arg "VERSION=$(VERSION)" -t "$(IMAGE):$(TAG)" .

@@ -1,0 +1,20 @@
+[tool]
+[tool.poetry]
+name = "kube-janitor"
+version = "2019.2.1dev0"
+description = "Clean up (delete) Kubernetes resources after a configured TTL (time to live)"
+authors = ["Henning Jacobs <henning@jacobs1.de>"]
+
+[tool.poetry.dependencies]
+python = ">=3.7"
+jmespath = "*"
+pykube-ng = "*"
+
+[tool.poetry.dev-dependencies]
+coverage = "*"
+coveralls = "*"
+flake8 = "*"
+pytest = "*"
+pytest-cov = "*"
+black = "^19.10b0"
+mypy = "^0.761"

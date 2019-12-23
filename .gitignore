@@ -11,3 +11,4 @@ dist/
 htmlcov/
 .pytest_cache/
 .vscode
+.mypy_cache

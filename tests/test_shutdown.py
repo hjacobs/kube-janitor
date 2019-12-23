@@ -15,7 +15,7 @@ def test_graceful_shutdown(monkeypatch):
     assert handler.shutdown_now
 
     mock_exit = MagicMock()
-    monkeypatch.setattr('sys.exit', mock_exit)
+    monkeypatch.setattr("sys.exit", mock_exit)
     with handler.safe_exit():
         handler.exit_gracefully(None, None)
 

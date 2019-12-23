@@ -193,8 +193,8 @@ You can run Kubernetes Janitor against your current kubeconfig context, e.g. loc
 
 .. code-block:: bash
 
-    $ pipenv install --dev
-    $ pipenv shell
+    $ poetry install
+    $ poetry shell
     $ python3 -m kube_janitor --dry-run --debug --once
 
 To run PEP8 (flake8) checks and unit tests including coverage report:
