@@ -1,5 +1,7 @@
-import pytest
 import datetime
+
+import pytest
+
 from kube_janitor.helper import parse_expiry
 
 

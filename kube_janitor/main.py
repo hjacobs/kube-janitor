@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
-
-import time
 import logging
+import time
 
-from kube_janitor import __version__, cmd, shutdown
+from kube_janitor import __version__
+from kube_janitor import cmd
+from kube_janitor import shutdown
 from kube_janitor.helper import get_kube_api
 from kube_janitor.janitor import clean_up
 from kube_janitor.rules import load_rules_from_file

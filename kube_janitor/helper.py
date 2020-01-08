@@ -1,8 +1,8 @@
-import os
-
 import datetime
-import pykube
+import os
 import re
+
+import pykube
 
 
 TIME_UNIT_TO_SECONDS = {
@@ -54,8 +54,7 @@ def parse_expiry(expiry: str) -> datetime.datetime:
 
 
 def format_duration(seconds: int) -> str:
-    """
-    Print a given duration in seconds (positive integer) as human readable duration string
+    """Print a given duration in seconds (positive integer) as human readable duration string.
 
     >>> format_duration(3900)
     1h5m

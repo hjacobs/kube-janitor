@@ -1,16 +1,15 @@
 import datetime
 import unittest
 
-from kube_janitor.janitor import (
-    add_notification_flag,
-    get_delete_notification_time,
-    get_ttl_expiry_time,
-    handle_resource_on_expiry,
-    handle_resource_on_ttl,
-    was_notified,
-)
 from pykube import Namespace
 from pykube.utils import obj_merge
+
+from kube_janitor.janitor import add_notification_flag
+from kube_janitor.janitor import get_delete_notification_time
+from kube_janitor.janitor import get_ttl_expiry_time
+from kube_janitor.janitor import handle_resource_on_expiry
+from kube_janitor.janitor import handle_resource_on_ttl
+from kube_janitor.janitor import was_notified
 
 
 class MockedNamespace(Namespace):

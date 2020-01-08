@@ -1,17 +1,15 @@
 import json
 import logging
-
 from unittest.mock import MagicMock
 
-from pykube.objects import NamespacedAPIObject
 from pykube import Namespace
-from kube_janitor.janitor import (
-    matches_resource_filter,
-    handle_resource_on_ttl,
-    handle_resource_on_expiry,
-    clean_up,
-    delete,
-)
+from pykube.objects import NamespacedAPIObject
+
+from kube_janitor.janitor import clean_up
+from kube_janitor.janitor import delete
+from kube_janitor.janitor import handle_resource_on_expiry
+from kube_janitor.janitor import handle_resource_on_ttl
+from kube_janitor.janitor import matches_resource_filter
 from kube_janitor.rules import Rule
 
 ALL = frozenset(["all"])

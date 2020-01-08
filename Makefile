@@ -10,14 +10,16 @@ default: docker
 install:
 	poetry install
 
-test: install
-	poetry run flake8
-	poetry run black --check kube_janitor
+.PHONY: lint
+lint:
+	poetry run pre-commit run --all-files
+
+test: install lint
 	poetry run mypy --ignore-missing-imports kube_janitor
 	poetry run coverage run --source=kube_janitor -m py.test -v
 	poetry run coverage report
 
-docker: 
+docker:
 	docker build --build-arg "VERSION=$(VERSION)" -t "$(IMAGE):$(TAG)" .
 	@echo 'Docker image $(IMAGE):$(TAG) can now be used.'
 

@@ -1,6 +1,5 @@
-import os
-
 import argparse
+import os
 
 DEFAULT_EXCLUDE_RESOURCES = "events,controllerrevisions"
 DEFAULT_EXCLUDE_NAMESPACES = "kube-system"

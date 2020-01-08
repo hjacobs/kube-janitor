@@ -1,8 +1,9 @@
 import pytest
+from pykube.objects import Deployment
+from pykube.objects import StatefulSet
 
-from pykube.objects import Deployment, StatefulSet
-
-from kube_janitor.rules import Rule, load_rules_from_file
+from kube_janitor.rules import load_rules_from_file
+from kube_janitor.rules import Rule
 
 
 def test_load_rules_from_wrong_file(tmpdir):

@@ -1,9 +1,9 @@
 import collections
-import jmespath
 import logging
 import re
-import yaml
 
+import jmespath
+import yaml
 from pykube.objects import NamespacedAPIObject
 
 from .helper import parse_ttl
