@@ -1,5 +1,7 @@
+import datetime
 import json
 import logging
+import unittest
 from unittest.mock import MagicMock
 
 from pykube import Namespace
@@ -13,6 +15,12 @@ from kube_janitor.janitor import matches_resource_filter
 from kube_janitor.rules import Rule
 
 ALL = frozenset(["all"])
+
+
+mock_now = unittest.mock.patch(
+    "kube_janitor.janitor.utcnow",
+    lambda: datetime.datetime.strptime("2019-03-11T11:13:09Z", "%Y-%m-%dT%H:%M:%SZ"),
+)
 
 
 def test_matches_resource_filter():
@@ -36,7 +44,9 @@ def test_delete_namespace(caplog):
 
 def test_handle_resource_no_ttl():
     resource = Namespace(None, {"metadata": {"name": "foo"}})
-    counter = handle_resource_on_ttl(resource, [], None, dry_run=True)
+    counter = handle_resource_on_ttl(
+        resource, [], None, deployment_time_annotation=None, dry_run=True
+    )
     assert counter == {"resources-processed": 1}
 
 
@@ -46,22 +56,100 @@ def test_handle_resource_no_expiry():
     assert counter == {}
 
 
+@mock_now
 def test_handle_resource_ttl_annotation():
-    # TTL is far in the future
+    # TTL is in the future
     resource = Namespace(
         None,
         {
             "metadata": {
                 "name": "foo",
-                "annotations": {"janitor/ttl": "999w"},
-                "creationTimestamp": "2019-01-17T20:59:12Z",
+                "annotations": {"janitor/ttl": "2w"},
+                "creationTimestamp": "2019-03-01T11:13:09Z",
             }
         },
     )
-    counter = handle_resource_on_ttl(resource, [], None, dry_run=True)
+    counter = handle_resource_on_ttl(
+        resource, [], 0, deployment_time_annotation=None, dry_run=True
+    )
     assert counter == {"resources-processed": 1, "namespaces-with-ttl": 1}
 
 
+@mock_now
+def test_handle_resource_deployment_time_no_annotation():
+    # creation time + TTL is in the past
+    resource = Namespace(
+        None,
+        {
+            "metadata": {
+                "name": "foo",
+                "annotations": {"janitor/ttl": "1w"},
+                "creationTimestamp": "2019-03-01T11:13:09Z",
+            }
+        },
+    )
+    counter = handle_resource_on_ttl(
+        resource, [], 0, deployment_time_annotation=None, dry_run=True
+    )
+    assert counter == {
+        "resources-processed": 1,
+        "namespaces-with-ttl": 1,
+        "namespaces-deleted": 1,
+    }
+
+
+@mock_now
+def test_handle_resource_deployment_time_no_expiry():
+    # creation time + TTL is in the past, but deployment time + TTL is in the future
+    resource = Namespace(
+        None,
+        {
+            "metadata": {
+                "name": "foo",
+                "annotations": {
+                    "janitor/ttl": "1w",
+                    "deploymentTimestamp": "2019-03-10T11:13:09Z",
+                },
+                "creationTimestamp": "2019-03-01T11:13:09Z",
+            }
+        },
+    )
+    counter = handle_resource_on_ttl(
+        resource, [], 0, deployment_time_annotation="deploymentTimestamp", dry_run=True
+    )
+    assert counter == {
+        "resources-processed": 1,
+        "namespaces-with-ttl": 1,
+    }
+
+
+@mock_now
+def test_handle_resource_deployment_time_both_expired():
+    # both creation time + TTL and deployment time + TTL are in the past
+    resource = Namespace(
+        None,
+        {
+            "metadata": {
+                "name": "foo",
+                "annotations": {
+                    "janitor/ttl": "1w",
+                    "deploymentTimestamp": "2019-03-02T11:13:09Z",
+                },
+                "creationTimestamp": "2019-03-01T11:13:09Z",
+            }
+        },
+    )
+    counter = handle_resource_on_ttl(
+        resource, [], 0, deployment_time_annotation="deploymentTimestamp", dry_run=True
+    )
+    assert counter == {
+        "resources-processed": 1,
+        "namespaces-with-ttl": 1,
+        "namespaces-deleted": 1,
+    }
+
+
+@mock_now
 def test_handle_resource_expiry_annotation():
     # TTL is far in the future
     resource = Namespace(
@@ -77,6 +165,7 @@ def test_handle_resource_expiry_annotation():
     assert counter == {"namespaces-with-expiry": 1}
 
 
+@mock_now
 def test_handle_resource_ttl_expired():
     resource = Namespace(
         None,
@@ -88,7 +177,9 @@ def test_handle_resource_ttl_expired():
             }
         },
     )
-    counter = handle_resource_on_ttl(resource, [], None, dry_run=True)
+    counter = handle_resource_on_ttl(
+        resource, [], None, deployment_time_annotation=None, dry_run=True
+    )
     assert counter == {
         "resources-processed": 1,
         "namespaces-with-ttl": 1,
@@ -96,6 +187,7 @@ def test_handle_resource_ttl_expired():
     }
 
 
+@mock_now
 def test_handle_resource_expiry_expired():
     resource = Namespace(
         None,
@@ -133,11 +225,22 @@ def test_clean_up_default():
         return response
 
     api_mock.get = get
-    counter = clean_up(api_mock, ALL, [], ALL, ["kube-system"], [], None, dry_run=False)
+    counter = clean_up(
+        api_mock,
+        ALL,
+        [],
+        ALL,
+        ["kube-system"],
+        [],
+        delete_notification=0,
+        deployment_time_annotation=None,
+        dry_run=False,
+    )
 
     assert counter["resources-processed"] == 1
 
 
+@mock_now
 def test_ignore_nonlistable_api_group():
     api_mock = MagicMock(spec=NamespacedAPIObject, name="APIMock")
 
@@ -187,13 +290,24 @@ def test_ignore_nonlistable_api_group():
         return response
 
     api_mock.get = get
-    counter = clean_up(api_mock, ALL, [], ALL, [], [], None, dry_run=False)
+    counter = clean_up(
+        api_mock,
+        ALL,
+        [],
+        ALL,
+        [],
+        [],
+        0,
+        deployment_time_annotation=None,
+        dry_run=False,
+    )
     assert counter["resources-processed"] == 2
     assert counter["customfoos-with-ttl"] == 0
     assert counter["customfoos-deleted"] == 0
     assert not api_mock.delete.called
 
 
+@mock_now
 def test_ignore_invalid_ttl():
     api_mock = MagicMock(spec=NamespacedAPIObject, name="APIMock")
 
@@ -236,13 +350,24 @@ def test_ignore_invalid_ttl():
         return response
 
     api_mock.get = get
-    counter = clean_up(api_mock, ALL, [], ALL, [], [], None, dry_run=False)
+    counter = clean_up(
+        api_mock,
+        ALL,
+        [],
+        ALL,
+        [],
+        [],
+        0,
+        deployment_time_annotation=None,
+        dry_run=False,
+    )
     assert counter["resources-processed"] == 2
     assert counter["customfoos-with-ttl"] == 0
     assert counter["customfoos-deleted"] == 0
     assert not api_mock.delete.called
 
 
+@mock_now
 def test_ignore_invalid_expiry():
     api_mock = MagicMock(spec=NamespacedAPIObject, name="APIMock")
 
@@ -284,13 +409,24 @@ def test_ignore_invalid_expiry():
         return response
 
     api_mock.get = get
-    counter = clean_up(api_mock, ALL, [], ALL, [], [], None, dry_run=False)
+    counter = clean_up(
+        api_mock,
+        ALL,
+        [],
+        ALL,
+        [],
+        [],
+        0,
+        deployment_time_annotation=None,
+        dry_run=False,
+    )
     assert counter["resources-processed"] == 2
     assert counter["customfoos-with-expiry"] == 0
     assert counter["customfoos-deleted"] == 0
     assert not api_mock.delete.called
 
 
+@mock_now
 def test_clean_up_custom_resource_on_ttl():
     api_mock = MagicMock(name="APIMock")
 
@@ -332,7 +468,17 @@ def test_clean_up_custom_resource_on_ttl():
         return response
 
     api_mock.get = get
-    counter = clean_up(api_mock, ALL, [], ALL, [], [], None, dry_run=False)
+    counter = clean_up(
+        api_mock,
+        ALL,
+        [],
+        ALL,
+        [],
+        [],
+        0,
+        deployment_time_annotation=None,
+        dry_run=False,
+    )
 
     # namespace ns-1 and object foo-1
     assert counter["resources-processed"] == 2
@@ -364,6 +510,7 @@ def test_clean_up_custom_resource_on_ttl():
     )
 
 
+@mock_now
 def test_clean_up_custom_resource_on_expiry():
     api_mock = MagicMock(name="APIMock")
 
@@ -404,7 +551,17 @@ def test_clean_up_custom_resource_on_expiry():
         return response
 
     api_mock.get = get
-    counter = clean_up(api_mock, ALL, [], ALL, [], [], None, dry_run=False)
+    counter = clean_up(
+        api_mock,
+        ALL,
+        [],
+        ALL,
+        [],
+        [],
+        0,
+        deployment_time_annotation=None,
+        dry_run=False,
+    )
 
     # namespace ns-1 and object foo-1
     assert counter["resources-processed"] == 2
@@ -436,6 +593,7 @@ def test_clean_up_custom_resource_on_expiry():
     )
 
 
+@mock_now
 def test_clean_up_by_rule():
     api_mock = MagicMock(name="APIMock")
 
@@ -485,7 +643,17 @@ def test_clean_up_by_rule():
         return response
 
     api_mock.get = get
-    counter = clean_up(api_mock, ALL, [], ALL, [], [rule], None, dry_run=False)
+    counter = clean_up(
+        api_mock,
+        ALL,
+        [],
+        ALL,
+        [],
+        [rule],
+        0,
+        deployment_time_annotation=None,
+        dry_run=False,
+    )
 
     # namespace ns-1 and object foo-1
     assert counter["resources-processed"] == 2
