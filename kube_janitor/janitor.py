@@ -147,7 +147,8 @@ def delete(resource, dry_run: bool):
         try:
             # force cascading delete also for older objects (e.g. extensions/v1beta1)
             # see https://kubernetes.io/docs/concepts/workloads/controllers/garbage-collection/#setting-the-cascading-deletion-policy
-            resource.delete(propagation_policy="Foreground")
+            # use "Background" instead of "Foreground" to fix CRD deletion, see https://github.com/hjacobs/kube-janitor/issues/47
+            resource.delete(propagation_policy="Background")
         except Exception as e:
             logger.error(
                 f"Could not delete {resource.kind} {resource.namespace}/{resource.name}: {e}"
