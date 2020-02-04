@@ -55,15 +55,19 @@ def get_deployment_time(
     resource, deployment_time_annotation: Optional[str]
 ) -> datetime.datetime:
     metadata = resource.metadata
-    creation_time = metadata["creationTimestamp"]
-    deployment_time = (
-        metadata.get("annotations", {}).get(deployment_time_annotation)
+    annotations = metadata.get("annotations", {})
+
+    creation_timestamp = metadata["creationTimestamp"]
+    deployment_timestamp = (
+        annotations.get(deployment_time_annotation)
         if deployment_time_annotation
         else None
     )
 
-    return datetime.datetime.strptime(
-        deployment_time or creation_time, "%Y-%m-%dT%H:%M:%SZ"
+    return max(
+        datetime.datetime.strptime(timestamp, "%Y-%m-%dT%H:%M:%SZ")
+        for timestamp in (creation_timestamp, deployment_timestamp)
+        if timestamp is not None
     )
 
 

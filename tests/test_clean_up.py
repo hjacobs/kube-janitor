@@ -124,6 +124,32 @@ def test_handle_resource_deployment_time_no_expiry():
 
 
 @mock_now
+def test_handle_resource_deployment_time_creation_time_later():
+    # deployment time + TTL is in the past, but creation time + TTL is in the future
+    resource = Namespace(
+        None,
+        {
+            "metadata": {
+                "name": "foo",
+                "annotations": {
+                    "janitor/ttl": "1w",
+                    "deploymentTimestamp": "2019-03-01T11:13:09Z",
+                },
+                "creationTimestamp": "2019-03-02T11:13:09Z",
+            }
+        },
+    )
+    counter = handle_resource_on_ttl(
+        resource, [], 0, deployment_time_annotation="deploymentTimestamp", dry_run=True
+    )
+    assert counter == {
+        "resources-processed": 1,
+        "namespaces-with-ttl": 1,
+        "namespaces-deleted": 1,
+    }
+
+
+@mock_now
 def test_handle_resource_deployment_time_both_expired():
     # both creation time + TTL and deployment time + TTL are in the past
     resource = Namespace(
