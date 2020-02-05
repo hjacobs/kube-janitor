@@ -51,24 +51,27 @@ def matches_resource_filter(
     )
 
 
+def parse_time(timestamp: str) -> datetime.datetime:
+    return datetime.datetime.strptime(timestamp, "%Y-%m-%dT%H:%M:%SZ")
+
+
 def get_deployment_time(
     resource, deployment_time_annotation: Optional[str]
 ) -> datetime.datetime:
-    metadata = resource.metadata
-    annotations = metadata.get("annotations", {})
+    creation_timestamp = parse_time(resource.metadata["creationTimestamp"])
 
-    creation_timestamp = metadata["creationTimestamp"]
-    deployment_timestamp = (
-        annotations.get(deployment_time_annotation)
-        if deployment_time_annotation
-        else None
-    )
+    if deployment_time_annotation:
+        annotations = resource.metadata.get("annotations", {})
+        deployment_time = annotations.get(deployment_time_annotation)
+        if deployment_time:
+            try:
+                return max(creation_timestamp, parse_time(deployment_time))
+            except ValueError as e:
+                logger.warning(
+                    f"Invalid {deployment_time_annotation} in {resource.namespace}/{resource.name}: {e}"
+                )
 
-    return max(
-        datetime.datetime.strptime(timestamp, "%Y-%m-%dT%H:%M:%SZ")
-        for timestamp in (creation_timestamp, deployment_timestamp)
-        if timestamp is not None
-    )
+    return creation_timestamp
 
 
 def get_delete_notification_time(
