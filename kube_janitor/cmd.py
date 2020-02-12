@@ -25,7 +25,6 @@ def get_parser():
         "--delete-notification",
         type=int,
         help="Send an event seconds before to warn of the deletion",
-        required=False,
     )
     parser.add_argument(
         "--include-resources",
@@ -51,5 +50,9 @@ def get_parser():
         "--rules-file",
         help="Load TTL rules from given file path",
         default=os.getenv("RULES_FILE"),
+    )
+    parser.add_argument(
+        "--deployment-time-annotation",
+        help="Annotation that contains a resource's last deployment time, overrides creationTime",
     )
     return parser

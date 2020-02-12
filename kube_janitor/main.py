@@ -42,6 +42,7 @@ def main(args=None):
         rules,
         args.interval,
         args.delete_notification,
+        args.deployment_time_annotation,
         args.dry_run,
     )
 
@@ -55,6 +56,7 @@ def run_loop(
     rules,
     interval,
     delete_notification,
+    deployment_time_annotation,
     dry_run,
 ):
     handler = shutdown.GracefulShutdown()
@@ -69,6 +71,7 @@ def run_loop(
                 exclude_namespaces=frozenset(exclude_namespaces.split(",")),
                 rules=rules,
                 delete_notification=delete_notification,
+                deployment_time_annotation=deployment_time_annotation,
                 dry_run=dry_run,
             )
         except Exception as e:

@@ -104,6 +104,8 @@ Available command line options:
     This option takes precedence over ``--include-namespaces``, i.e. ``--exclude-namespaces=ns1`` in combination with ``--include-namespaces=ns1,ns2`` would only process resources in the ``ns2`` namespace.
 ``--rules-file``
     Optional: filename pointing to a YAML file with a list of rules to apply TTL values to arbitrary Kubernetes objects, e.g. to delete all deployments without a certain label automatically after N days. See Rules File configuration section below.
+``--deployment-time-annotation``
+    Optional: name of the annotation that would be used instead of the creation timestamp of the resource. This option should be used if you want the resources to not be cleaned up if they've been recently redeployed, and your deployment tooling can set this annotation.
 
 Example flags:
 
