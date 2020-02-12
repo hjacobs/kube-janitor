@@ -1,6 +1,7 @@
 import datetime
 import logging
 from collections import Counter
+from typing import Optional
 
 import pykube
 from pykube import Event
@@ -50,11 +51,27 @@ def matches_resource_filter(
     )
 
 
-def get_ttl_expiry_time(resource, ttl_seconds: int) -> datetime.datetime:
-    creation_time = datetime.datetime.strptime(
-        resource.metadata["creationTimestamp"], "%Y-%m-%dT%H:%M:%SZ"
-    )
-    return creation_time + datetime.timedelta(seconds=ttl_seconds)
+def parse_time(timestamp: str) -> datetime.datetime:
+    return datetime.datetime.strptime(timestamp, "%Y-%m-%dT%H:%M:%SZ")
+
+
+def get_deployment_time(
+    resource, deployment_time_annotation: Optional[str]
+) -> datetime.datetime:
+    creation_timestamp = parse_time(resource.metadata["creationTimestamp"])
+
+    if deployment_time_annotation:
+        annotations = resource.metadata.get("annotations", {})
+        deployment_time = annotations.get(deployment_time_annotation)
+        if deployment_time:
+            try:
+                return max(creation_timestamp, parse_time(deployment_time))
+            except ValueError as e:
+                logger.warning(
+                    f"Invalid {deployment_time_annotation} in {resource.namespace}/{resource.name}: {e}"
+                )
+
+    return creation_timestamp
 
 
 def get_delete_notification_time(
@@ -75,15 +92,6 @@ def add_notification_flag(resource, dry_run: bool):
 
 def was_notified(resource):
     return NOTIFIED_ANNOTATION in resource.annotations.keys()
-
-
-def get_age(resource):
-    creation_time = datetime.datetime.strptime(
-        resource.metadata["creationTimestamp"], "%Y-%m-%dT%H:%M:%SZ"
-    )
-    now = utcnow()
-    age = now - creation_time
-    return age
 
 
 def utcnow():
@@ -155,7 +163,13 @@ def delete(resource, dry_run: bool):
             )
 
 
-def handle_resource_on_ttl(resource, rules, delete_notification: int, dry_run: bool):
+def handle_resource_on_ttl(
+    resource,
+    rules,
+    delete_notification: int,
+    deployment_time_annotation: Optional[str],
+    dry_run: bool,
+):
     counter = {"resources-processed": 1}
 
     ttl = resource.annotations.get(TTL_ANNOTATION)
@@ -180,7 +194,10 @@ def handle_resource_on_ttl(resource, rules, delete_notification: int, dry_run: b
         else:
             if ttl_seconds > 0:
                 counter[f"{resource.endpoint}-with-ttl"] = 1
-                age = get_age(resource)
+                deployment_time = get_deployment_time(
+                    resource, deployment_time_annotation
+                )
+                age = utcnow() - deployment_time
                 age_formatted = format_duration(int(age.total_seconds()))
                 logger.debug(
                     f"{resource.kind} {resource.name} with {ttl} TTL is {age_formatted} old"
@@ -194,7 +211,9 @@ def handle_resource_on_ttl(resource, rules, delete_notification: int, dry_run: b
                     delete(resource, dry_run=dry_run)
                     counter[f"{resource.endpoint}-deleted"] = 1
                 elif delete_notification:
-                    expiry_time = get_ttl_expiry_time(resource, ttl_seconds)
+                    expiry_time = deployment_time + datetime.timedelta(
+                        seconds=ttl_seconds
+                    )
                     notification_time = get_delete_notification_time(
                         expiry_time, delete_notification
                     )
@@ -251,6 +270,7 @@ def clean_up(
     exclude_namespaces: frozenset,
     rules: list,
     delete_notification: int,
+    deployment_time_annotation: Optional[str],
     dry_run: bool,
 ):
 
@@ -265,7 +285,13 @@ def clean_up(
             exclude_namespaces,
         ):
             counter.update(
-                handle_resource_on_ttl(namespace, rules, delete_notification, dry_run)
+                handle_resource_on_ttl(
+                    namespace,
+                    rules,
+                    delete_notification,
+                    deployment_time_annotation,
+                    dry_run,
+                )
             )
             counter.update(
                 handle_resource_on_expiry(
@@ -307,7 +333,13 @@ def clean_up(
 
     for resource in filtered_resources:
         counter.update(
-            handle_resource_on_ttl(resource, rules, delete_notification, dry_run)
+            handle_resource_on_ttl(
+                resource,
+                rules,
+                delete_notification,
+                deployment_time_annotation,
+                dry_run,
+            )
         )
         counter.update(
             handle_resource_on_expiry(resource, rules, delete_notification, dry_run)

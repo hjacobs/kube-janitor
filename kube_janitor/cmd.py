@@ -52,4 +52,9 @@ def get_parser():
         help="Load TTL rules from given file path",
         default=os.getenv("RULES_FILE"),
     )
+    parser.add_argument(
+        "--deployment-time-annotation",
+        help="Annotation that contains a resource's last deployment time, overrides creationTime",
+        required=False,
+    )
     return parser
