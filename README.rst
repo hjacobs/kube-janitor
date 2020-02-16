@@ -43,6 +43,8 @@ Usage
 
 Deploy the janitor into your cluster via (also works with Minikube_):
 
+    Warning: if you want to deploy janitor to namespace other than ``default``, you need to edit ``/deploy/common/rbac.yaml`` first.
+
 .. code-block:: bash
 
     $ kubectl apply -f deploy/common/

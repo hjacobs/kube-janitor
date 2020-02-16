@@ -35,4 +35,5 @@ roleRef:
 subjects:
 - kind: ServiceAccount
   name: kube-janitor
+  # change the namespace name below if you want to deploy to a different namespace
   namespace: default
