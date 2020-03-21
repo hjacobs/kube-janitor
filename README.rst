@@ -37,6 +37,9 @@ Expiry date
 * Deploy the janitor to a test (non-prod) cluster and use namespaces with an expiry date (``janitor/expires: 2020-01-17T15:14:38Z`` on the namespace object)
 * Annotate your temporary manual test nginx deployment with ``kubectl annotate deploy nginx janitor/expires=2020-01-01`` to automatically delete it at midnight (UTC) of 1st of January 2020.
 
+Unused Persistent Volume Claims
+-------------------------------
+* Use a rules file with to delete all unused PVCs (``jmespath: "_context.pvc_is_not_mounted && _context.pvc_is_not_referenced"``)
 
 Usage
 =====
