@@ -10,6 +10,7 @@ from pykube import Namespace
 from .helper import format_duration
 from .helper import parse_expiry
 from .helper import parse_ttl
+from .resource_context import get_resource_context
 from .resources import get_namespaced_resource_types
 
 logger = logging.getLogger(__name__)
@@ -176,8 +177,9 @@ def handle_resource_on_ttl(
     if ttl:
         reason = f"annotation {TTL_ANNOTATION} is set"
     else:
+        context = get_resource_context(resource)
         for rule in rules:
-            if rule.matches(resource):
+            if rule.matches(resource, context):
                 logger.debug(
                     f"Rule {rule.id} applies {rule.ttl} TTL to {resource.kind} {resource.namespace}/{resource.name}"
                 )

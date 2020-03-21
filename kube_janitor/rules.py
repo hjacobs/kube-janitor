@@ -31,11 +31,13 @@ class Rule(collections.namedtuple("Rule", ["id", "resources", "jmespath", "ttl"]
             ttl=entry["ttl"],
         )
 
-    def matches(self, resource: NamespacedAPIObject):
+    def matches(self, resource: NamespacedAPIObject, context: dict = None):
         if resource.endpoint not in self.resources and "*" not in self.resources:
             return False
 
-        result = self.jmespath.search(resource.obj)
+        data = {"_context": context}
+        data.update(resource.obj)
+        result = self.jmespath.search(data)
         logger.debug(
             f'Rule {self.id} with JMESPath "{self.jmespath.expression}" evaluated for {resource.kind} {resource.namespace}/{resource.name}: {result}'
         )

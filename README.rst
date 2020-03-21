@@ -157,6 +157,12 @@ When using the ``--rules-file`` option, the path needs to point to a valid YAML 
       - statefulsets
       jmespath: "!(spec.template.metadata.labels.foo) && metadata.creationTimestamp > '2019-04-01'"
       ttl: 7d
+    # delete all PVCs which are not mounted and not referenced by StatefulSets
+    - id: remove-unused-pvcs
+      resources:
+      - persistentvolumeclaims
+      jmespath: "_context.pvc_is_not_mounted && _context.pvc_is_not_referenced"
+      ttl: 4d
 
 The first matching rule will define the TTL (``ttl`` field). Kubernetes objects with a ``janitor/ttl`` annotation will not be matched against any rule.
 
@@ -177,6 +183,8 @@ Each rule has the following attributes:
 ``jmespath``
     JMESPath_ expression to evaluate on the resource object. The rule will only match if the expression evaluates to true. The expression will get the Kubernetes object as input.
     The expression ``metadata.labels.foo`` would evaluate to true if the object has the label ``foo`` and it has a non-empty string as value.
+    Additional context for PersistentVolumeClaim objects is available in the ``_context`` property: ``_context.pvc_is_not_mounted`` evaluates to true if the PVC is not mounted by any Pod.
+    ``_context.pvc_is_not_referenced`` is true if the PVC does not match any StatefulSet volumeClaimTemplate.
 ``ttl``
     TTL value (e.g. ``15m``) to apply to the object if the rule matches.
 
