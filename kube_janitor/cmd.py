@@ -1,8 +1,19 @@
 import argparse
+import importlib
 import os
+from typing import Callable
 
 DEFAULT_EXCLUDE_RESOURCES = "events,controllerrevisions"
 DEFAULT_EXCLUDE_NAMESPACES = "kube-system"
+
+
+def get_hook_function(value: str) -> Callable:
+    module_name, attr_path = value.rsplit(".", 1)
+    module = importlib.import_module(module_name)
+    function = getattr(module, attr_path)
+    if not callable(function):
+        raise ValueError(f"Not a callable function: {value}")
+    return function
 
 
 def get_parser():
@@ -54,5 +65,10 @@ def get_parser():
     parser.add_argument(
         "--deployment-time-annotation",
         help="Annotation that contains a resource's last deployment time, overrides creationTime",
+    )
+    parser.add_argument(
+        "--resource-context-hook",
+        type=get_hook_function,
+        help="Optional hook to extend the '_context' object with custom information, e.g. to base decisions on external systems",
     )
     return parser

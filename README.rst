@@ -111,6 +111,8 @@ Available command line options:
     Optional: filename pointing to a YAML file with a list of rules to apply TTL values to arbitrary Kubernetes objects, e.g. to delete all deployments without a certain label automatically after N days. See Rules File configuration section below.
 ``--deployment-time-annotation``
     Optional: name of the annotation that would be used instead of the creation timestamp of the resource. This option should be used if you want the resources to not be cleaned up if they've been recently redeployed, and your deployment tooling can set this annotation.
+``--resource-context-hook``
+    Optional: string pointing to a Python function to populate the ``_context`` object with additional information, e.g. by calling external services. Built-in example to set ``_context.random_dice`` to a random dice value (1-6): ``--resource-context-hook=kube_janitor.example_hooks.random_dice``.
 
 Example flags:
 

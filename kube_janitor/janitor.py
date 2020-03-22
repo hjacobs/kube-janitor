@@ -1,11 +1,15 @@
 import datetime
 import logging
 from collections import Counter
+from typing import Any
+from typing import Callable
+from typing import Dict
 from typing import Optional
 
 import pykube
 from pykube import Event
 from pykube import Namespace
+from pykube.objects import APIObject
 
 from .helper import format_duration
 from .helper import parse_expiry
@@ -168,8 +172,10 @@ def handle_resource_on_ttl(
     resource,
     rules,
     delete_notification: int,
-    deployment_time_annotation: Optional[str],
-    dry_run: bool,
+    deployment_time_annotation: Optional[str] = None,
+    resource_context_hook: Optional[Callable[[APIObject, dict], Dict[str, Any]]] = None,
+    cache: Dict[str, Any] = None,
+    dry_run: bool = False,
 ):
     counter = {"resources-processed": 1}
 
@@ -177,7 +183,7 @@ def handle_resource_on_ttl(
     if ttl:
         reason = f"annotation {TTL_ANNOTATION} is set"
     else:
-        context = get_resource_context(resource)
+        context = get_resource_context(resource, resource_context_hook, cache)
         for rule in rules:
             if rule.matches(resource, context):
                 logger.debug(
@@ -272,11 +278,13 @@ def clean_up(
     exclude_namespaces: frozenset,
     rules: list,
     delete_notification: int,
-    deployment_time_annotation: Optional[str],
-    dry_run: bool,
+    deployment_time_annotation: Optional[str] = None,
+    resource_context_hook: Optional[Callable[[APIObject, dict], Dict[str, Any]]] = None,
+    dry_run: bool = False,
 ):
 
     counter: Counter = Counter()
+    cache: Dict[str, Any] = {}
 
     for namespace in Namespace.objects(api):
         if matches_resource_filter(
@@ -292,6 +300,8 @@ def clean_up(
                     rules,
                     delete_notification,
                     deployment_time_annotation,
+                    resource_context_hook,
+                    cache,
                     dry_run,
                 )
             )
@@ -340,6 +350,8 @@ def clean_up(
                 rules,
                 delete_notification,
                 deployment_time_annotation,
+                resource_context_hook,
+                cache,
                 dry_run,
             )
         )

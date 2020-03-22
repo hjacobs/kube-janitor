@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 import logging
 import time
+from typing import Callable
+from typing import Optional
 
 from kube_janitor import __version__
 from kube_janitor import cmd
@@ -43,6 +45,7 @@ def main(args=None):
         args.interval,
         args.delete_notification,
         args.deployment_time_annotation,
+        args.resource_context_hook,
         args.dry_run,
     )
 
@@ -56,8 +59,9 @@ def run_loop(
     rules,
     interval,
     delete_notification,
-    deployment_time_annotation,
-    dry_run,
+    deployment_time_annotation: Optional[str],
+    resource_context_hook: Optional[Callable],
+    dry_run: bool,
 ):
     handler = shutdown.GracefulShutdown()
     while True:
@@ -72,6 +76,7 @@ def run_loop(
                 rules=rules,
                 delete_notification=delete_notification,
                 deployment_time_annotation=deployment_time_annotation,
+                resource_context_hook=resource_context_hook,
                 dry_run=dry_run,
             )
         except Exception as e:

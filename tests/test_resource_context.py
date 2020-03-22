@@ -1,7 +1,9 @@
 from unittest.mock import MagicMock
 
+from pykube.objects import Namespace
 from pykube.objects import PersistentVolumeClaim
 
+import kube_janitor.example_hooks
 from kube_janitor.resource_context import get_resource_context
 
 
@@ -83,3 +85,16 @@ def test_pvc_is_referenced():
 
     context = get_resource_context(pvc)
     assert not context["pvc_is_not_referenced"]
+
+
+def test_example_hook():
+    namespace = Namespace(None, {"metadata": {"name": "my-ns"}})
+    hook = kube_janitor.example_hooks.random_dice
+    cache = {}
+    context = get_resource_context(namespace, hook, cache)
+    value = context["random_dice"]
+    assert 1 <= value <= 6
+
+    # check that cache is used
+    new_context = get_resource_context(namespace, hook, cache)
+    assert new_context["random_dice"] == value
