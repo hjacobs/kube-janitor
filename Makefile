@@ -15,7 +15,6 @@ lint:
 	poetry run pre-commit run --all-files
 
 test: install lint
-	poetry run mypy --ignore-missing-imports kube_janitor
 	poetry run coverage run --source=kube_janitor -m py.test -v
 	poetry run coverage report
 

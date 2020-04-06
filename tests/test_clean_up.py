@@ -557,7 +557,7 @@ def test_clean_up_custom_resource_on_ttl():
     api_mock.delete.assert_called_once_with(
         data='{"propagationPolicy": "Background"}',
         namespace="ns-1",
-        url="customfoos/foo-1",
+        url="/customfoos/foo-1",
         version="srcco.de/v1",
     )
 
@@ -640,7 +640,7 @@ def test_clean_up_custom_resource_on_expiry():
     api_mock.delete.assert_called_once_with(
         data='{"propagationPolicy": "Background"}',
         namespace="ns-1",
-        url="customfoos/foo-1",
+        url="/customfoos/foo-1",
         version="srcco.de/v1",
     )
 
@@ -733,6 +733,6 @@ def test_clean_up_by_rule():
     api_mock.delete.assert_called_once_with(
         data='{"propagationPolicy": "Background"}',
         namespace="ns-1",
-        url="customfoos/foo-1",
+        url="/customfoos/foo-1",
         version="srcco.de/v1",
     )

@@ -11,7 +11,7 @@ repos:
   # formatters
 
   - repo: https://github.com/asottile/reorder_python_imports
-    rev: v1.9.0
+    rev: v2.1.0
     hooks:
       - id: reorder-python-imports
 
@@ -27,7 +27,7 @@ repos:
       - id: black
 
   - repo: https://github.com/asottile/pyupgrade
-    rev: v1.26.2
+    rev: v2.1.0
     hooks:
       - id: pyupgrade
         stages: [push]
@@ -69,7 +69,7 @@ repos:
         stages: [push]
 
   - repo: https://github.com/adrienverge/yamllint
-    rev: v1.20.0
+    rev: v1.21.0
     hooks:
       - id: yamllint
         args: ["--strict", "-d", "{rules: {line-length: {max: 180}}}"]
@@ -82,15 +82,9 @@ repos:
         #
 
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v0.761
+    rev: v0.770
     hooks:
       - id: mypy
-
-  - repo: https://github.com/pryorda/dockerfilelint-precommit-hooks
-    rev: v0.1.0
-    hooks:
-      - id: dockerfilelint
-        stages: [commit]  # required
 
   # miscellaneous
 
@@ -125,6 +119,6 @@ repos:
   # http://jorisroovers.com/gitlint/#using-gitlint-through-pre-commit
 
   - repo: https://github.com/jorisroovers/gitlint
-    rev:  v0.12.0
+    rev:  v0.13.1
     hooks:
       - id: gitlint
