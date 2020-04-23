@@ -9,6 +9,7 @@ import jmespath
 from pykube import HTTPClient
 from pykube.objects import APIObject
 from pykube.objects import CronJob
+from pykube.objects import Deployment
 from pykube.objects import Job
 from pykube.objects import NamespacedAPIObject
 from pykube.objects import Pod
@@ -19,6 +20,7 @@ logger = logging.getLogger(__name__)
 PVC_REFERENCES = {
     Pod: jmespath.compile("spec.volumes[].persistentVolumeClaim"),
     Job: jmespath.compile("spec.template.spec.volumes[].persistentVolumeClaim"),
+    Deployment: jmespath.compile("spec.template.spec.volumes[].persistentVolumeClaim"),
     CronJob: jmespath.compile(
         "spec.jobTemplate.spec.template.spec.volumes[].persistentVolumeClaim"
     ),
