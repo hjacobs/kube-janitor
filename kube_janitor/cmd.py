@@ -33,6 +33,12 @@ def get_parser():
         "--interval", type=int, help="Loop interval (default: 30s)", default=30
     )
     parser.add_argument(
+        "--wait-after-delete",
+        type=int,
+        help="Wait time after issuing a delete (default: 0s)",
+        default=0,
+    )
+    parser.add_argument(
         "--delete-notification",
         type=int,
         help="Send an event seconds before to warn of the deletion",

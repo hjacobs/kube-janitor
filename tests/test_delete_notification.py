@@ -280,7 +280,9 @@ class TestDeleteNotification(unittest.TestCase):
             },
         )
         delete_notification = 180
-        handle_resource_on_expiry(resource, [], delete_notification, dry_run=True)
+        handle_resource_on_expiry(
+            resource, [], delete_notification, wait_after_delete=0, dry_run=True
+        )
         mocked_add_notification_flag.assert_not_called()
 
     @unittest.mock.patch(
@@ -308,7 +310,9 @@ class TestDeleteNotification(unittest.TestCase):
             },
         )
         delete_notification = 180
-        handle_resource_on_expiry(resource, [], delete_notification, dry_run=True)
+        handle_resource_on_expiry(
+            resource, [], delete_notification, wait_after_delete=0, dry_run=True
+        )
         mocked_add_notification_flag.assert_called()
 
     @unittest.mock.patch(
@@ -336,7 +340,9 @@ class TestDeleteNotification(unittest.TestCase):
             },
         )
         delete_notification = 180
-        handle_resource_on_expiry(resource, [], delete_notification, dry_run=True)
+        handle_resource_on_expiry(
+            resource, [], delete_notification, wait_after_delete=0, dry_run=True
+        )
 
         expire = datetime.datetime.strptime(
             "2019-03-11T11:15:00Z", "%Y-%m-%dT%H:%M:%SZ"

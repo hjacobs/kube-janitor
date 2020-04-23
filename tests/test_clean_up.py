@@ -37,9 +37,22 @@ def test_delete_namespace(caplog):
     caplog.set_level(logging.INFO)
     mock_api = MagicMock()
     foo_ns = Namespace(mock_api, {"metadata": {"name": "foo"}})
-    delete(foo_ns, dry_run=False)
+    delete(foo_ns, wait_after_delete=0, dry_run=False)
     assert "Deleting Namespace foo.." in caplog.messages
     mock_api.delete.assert_called_once()
+
+
+def test_wait_after_delete(monkeypatch):
+    mock_sleep = MagicMock()
+    monkeypatch.setattr("time.sleep", mock_sleep)
+    mock_api = MagicMock()
+    foo_ns = Namespace(mock_api, {"metadata": {"name": "foo"}})
+
+    delete(foo_ns, wait_after_delete=123, dry_run=True)
+    assert not mock_sleep.called
+
+    delete(foo_ns, wait_after_delete=123, dry_run=False)
+    mock_sleep.assert_called_once_with(123)
 
 
 def test_handle_resource_no_ttl():
@@ -52,7 +65,9 @@ def test_handle_resource_no_ttl():
 
 def test_handle_resource_no_expiry():
     resource = Namespace(None, {"metadata": {"name": "foo"}})
-    counter = handle_resource_on_expiry(resource, [], None, dry_run=True)
+    counter = handle_resource_on_expiry(
+        resource, [], None, wait_after_delete=0, dry_run=True
+    )
     assert counter == {}
 
 
@@ -213,7 +228,9 @@ def test_handle_resource_expiry_annotation():
             }
         },
     )
-    counter = handle_resource_on_expiry(resource, [], None, dry_run=True)
+    counter = handle_resource_on_expiry(
+        resource, [], None, wait_after_delete=0, dry_run=True
+    )
     assert counter == {"namespaces-with-expiry": 1}
 
 
@@ -250,7 +267,9 @@ def test_handle_resource_expiry_expired():
             }
         },
     )
-    counter = handle_resource_on_expiry(resource, [], None, dry_run=True)
+    counter = handle_resource_on_expiry(
+        resource, [], None, wait_after_delete=0, dry_run=True
+    )
     assert counter == {"namespaces-with-expiry": 1, "namespaces-deleted": 1}
 
 

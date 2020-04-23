@@ -1,5 +1,6 @@
 import datetime
 import logging
+import time
 from collections import Counter
 from typing import Any
 from typing import Callable
@@ -148,7 +149,7 @@ def create_event(resource, message: str, reason: str, dry_run: bool):
             logger.error(f"Could not create event {event.obj}: {e}")
 
 
-def delete(resource, dry_run: bool):
+def delete(resource, wait_after_delete: int, dry_run: bool):
     if dry_run:
         logger.info(
             f"**DRY-RUN**: would delete {resource.kind} {resource.namespace}/{resource.name}"
@@ -166,6 +167,9 @@ def delete(resource, dry_run: bool):
             logger.error(
                 f"Could not delete {resource.kind} {resource.namespace}/{resource.name}: {e}"
             )
+        if wait_after_delete > 0:
+            logger.debug(f"Waiting {wait_after_delete}s after deletion")
+            time.sleep(wait_after_delete)
 
 
 def handle_resource_on_ttl(
@@ -175,6 +179,7 @@ def handle_resource_on_ttl(
     deployment_time_annotation: Optional[str] = None,
     resource_context_hook: Optional[Callable[[APIObject, dict], Dict[str, Any]]] = None,
     cache: Dict[str, Any] = None,
+    wait_after_delete: int = 0,
     dry_run: bool = False,
 ):
     counter = {"resources-processed": 1}
@@ -216,7 +221,9 @@ def handle_resource_on_ttl(
                     create_event(
                         resource, message, "TimeToLiveExpired", dry_run=dry_run
                     )
-                    delete(resource, dry_run=dry_run)
+                    delete(
+                        resource, wait_after_delete=wait_after_delete, dry_run=dry_run
+                    )
                     counter[f"{resource.endpoint}-deleted"] = 1
                 elif delete_notification:
                     expiry_time = deployment_time + datetime.timedelta(
@@ -233,7 +240,9 @@ def handle_resource_on_ttl(
     return counter
 
 
-def handle_resource_on_expiry(resource, rules, delete_notification: int, dry_run: bool):
+def handle_resource_on_expiry(
+    resource, rules, delete_notification: int, wait_after_delete: int, dry_run: bool
+):
     counter = {}
 
     expiry = resource.annotations.get(EXPIRY_ANNOTATION)
@@ -252,7 +261,7 @@ def handle_resource_on_expiry(resource, rules, delete_notification: int, dry_run
                 message = f"{resource.kind} {resource.name} expired on {expiry} and will be deleted ({reason})"
                 logger.info(message)
                 create_event(resource, message, "ExpiryTimeReached", dry_run=dry_run)
-                delete(resource, dry_run=dry_run)
+                delete(resource, wait_after_delete=wait_after_delete, dry_run=dry_run)
                 counter[f"{resource.endpoint}-deleted"] = 1
             else:
                 logging.debug(
@@ -280,6 +289,7 @@ def clean_up(
     delete_notification: int,
     deployment_time_annotation: Optional[str] = None,
     resource_context_hook: Optional[Callable[[APIObject, dict], Dict[str, Any]]] = None,
+    wait_after_delete: int = 0,
     dry_run: bool = False,
 ):
 
@@ -302,12 +312,13 @@ def clean_up(
                     deployment_time_annotation,
                     resource_context_hook,
                     cache,
+                    wait_after_delete,
                     dry_run,
                 )
             )
             counter.update(
                 handle_resource_on_expiry(
-                    namespace, rules, delete_notification, dry_run
+                    namespace, rules, delete_notification, wait_after_delete, dry_run
                 )
             )
         else:
@@ -352,11 +363,14 @@ def clean_up(
                 deployment_time_annotation,
                 resource_context_hook,
                 cache,
+                wait_after_delete,
                 dry_run,
             )
         )
         counter.update(
-            handle_resource_on_expiry(resource, rules, delete_notification, dry_run)
+            handle_resource_on_expiry(
+                resource, rules, delete_notification, wait_after_delete, dry_run
+            )
         )
     stats = ", ".join([f"{k}={v}" for k, v in counter.items()])
     logger.info(f"Clean up run completed: {stats}")

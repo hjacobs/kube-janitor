@@ -97,6 +97,8 @@ Available command line options:
     Run only once and exit. This is useful if you run the Kubernetes Janitor as a ``CronJob``.
 ``--interval``
     Loop interval (default: 30s). This option only makes sense when the ``--once`` flag is not set.
+``--wait-after-delete``
+    How long to wait after issuing a delete (default: 0s). This option does not take effect for dry runs.
 ``--include-resources``
     Include resources for clean up (default: all resources), can also be configured via environment variable ``INCLUDE_RESOURCES``. This option can be used if you want to clean up only certain resource types, e.g. only ``deployments``.
 ``--exclude-resources``

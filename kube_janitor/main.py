@@ -46,6 +46,7 @@ def main(args=None):
         args.delete_notification,
         args.deployment_time_annotation,
         args.resource_context_hook,
+        args.wait_after_delete,
         args.dry_run,
     )
 
@@ -61,6 +62,7 @@ def run_loop(
     delete_notification,
     deployment_time_annotation: Optional[str],
     resource_context_hook: Optional[Callable],
+    wait_after_delete: int,
     dry_run: bool,
 ):
     handler = shutdown.GracefulShutdown()
@@ -77,6 +79,7 @@ def run_loop(
                 delete_notification=delete_notification,
                 deployment_time_annotation=deployment_time_annotation,
                 resource_context_hook=resource_context_hook,
+                wait_after_delete=wait_after_delete,
                 dry_run=dry_run,
             )
         except Exception as e:
