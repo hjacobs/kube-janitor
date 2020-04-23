@@ -25,8 +25,8 @@ Some of the default values are not specified in the `values.yaml` and are instea
 | `kubejanitor.interval`   | Interval for rerunning the execution ONLY USE WHEN not running in CronJob ie. once is set to false  | string  | 30s (kube-janitor default)   |
 | `kubejanitor.includeResources`  | List of k8s resource types to include, ex. `deployment,svc,ingress` | all resources (kube-janitor default)               | |
 | `kubejanitor.excludeResources`  | List of k8s resource types to exclude                               | events,controllerrevisions (kube-janitor default)  | |
-| `kubejanitor.includeNamespaces` | List of nameespaces to include                                      | all namespaces (kube-janitor default)              | |
-| `kubejanitor.excludeNamespaces` | List of nameespaces to exclude                                      | kube-system (kube-janitor default)                 | |
+| `kubejanitor.includeNamespaces` | List of namespaces to include                                      | all namespaces (kube-janitor default)              | |
+| `kubejanitor.excludeNamespaces` | List of namespaces to exclude                                      | kube-system (kube-janitor default)                 | |
 | `resources`              | `PodSpec` for resource request and limit for CPU and memory  | map     | `{}`                        |
 | `restartPolicy`          | `PodSpec` for pod restarting policy on failure               | string  | `OnFailure`                 |
 | `nodeSelector`           | `PodSpec` for defining nodeSelector to deploy the pod on     | map     | `{}`                        |
