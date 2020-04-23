@@ -11,7 +11,7 @@ repos:
   # formatters
 
   - repo: https://github.com/asottile/reorder_python_imports
-    rev: v2.1.0
+    rev: v2.2.0
     hooks:
       - id: reorder-python-imports
 
@@ -27,7 +27,7 @@ repos:
       - id: black
 
   - repo: https://github.com/asottile/pyupgrade
-    rev: v2.1.0
+    rev: v2.2.1
     hooks:
       - id: pyupgrade
         stages: [push]
@@ -69,7 +69,7 @@ repos:
         stages: [push]
 
   - repo: https://github.com/adrienverge/yamllint
-    rev: v1.21.0
+    rev: v1.23.0
     hooks:
       - id: yamllint
         args: ["--strict", "-d", "{rules: {line-length: {max: 180}}}"]
