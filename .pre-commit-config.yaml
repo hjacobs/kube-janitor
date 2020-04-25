@@ -19,7 +19,7 @@ repos:
     rev: 0.2.0
     hooks:
       - id: kube-manifest-lint
-        exclude: ^helm/templates/.*$
+        exclude: ^helm/templates/.*$|kustomization.yaml
 
   - repo: https://github.com/ambv/black
     rev: 19.10b0
