@@ -13,7 +13,7 @@ Some of the default values are not specified in the `values.yaml` and are instea
 | Parameter                | Description                                                  | Type    | Default                     |
 | ------------------------ | ------------------------------------------------------------ | ------- | --------------------------- |
 | `image.repository`       | Image repository                                             | string  | `hjacobs/kube-janitor`      |
-| `image.tag`              | Image tag                                                    | string  | `19.9.0`                    |
+| `image.tag`              | Image tag                                                    | string  | `20.4.1`                    |
 | `image.pullPolicy`       | Image pull policy                                            | string  | `IfNotPresent`              |
 | `cron.schedule`          | `CronJobSpec` for set the schedule of the CronJob resource   | string  | `*/5 * * * *`               |
 | `cron.successfulJobsHistoryLimit` | `CronJobSpec` for number of successful jobs to keep | integer | `3` (k8s default)           |
