@@ -296,33 +296,63 @@ def clean_up(
     counter: Counter = Counter()
     cache: Dict[str, Any] = {}
 
-    for namespace in Namespace.objects(api):
-        if matches_resource_filter(
-            namespace,
-            include_resources,
-            exclude_resources,
-            include_namespaces,
-            exclude_namespaces,
-        ):
-            counter.update(
-                handle_resource_on_ttl(
-                    namespace,
-                    rules,
-                    delete_notification,
-                    deployment_time_annotation,
-                    resource_context_hook,
-                    cache,
-                    wait_after_delete,
-                    dry_run,
+    if ("all" in include_namespaces):
+        for namespace in Namespace.objects(api):
+            if matches_resource_filter(
+                namespace,
+                include_resources,
+                exclude_resources,
+                include_namespaces,
+                exclude_namespaces,
+            ):
+                counter.update(
+                    handle_resource_on_ttl(
+                        namespace,
+                        rules,
+                        delete_notification,
+                        deployment_time_annotation,
+                        resource_context_hook,
+                        cache,
+                        wait_after_delete,
+                        dry_run,
+                    )
                 )
-            )
-            counter.update(
-                handle_resource_on_expiry(
-                    namespace, rules, delete_notification, wait_after_delete, dry_run
+                counter.update(
+                    handle_resource_on_expiry(
+                        namespace, rules, delete_notification, wait_after_delete, dry_run
+                    )
                 )
-            )
-        else:
-            logger.debug(f"Skipping {namespace.kind} {namespace}")
+            else:
+                logger.debug(f"Skipping {namespace.kind} {namespace}")
+    else:
+        for namespace in include_namespaces:
+            if matches_resource_filter(
+                namespace,
+                include_resources,
+                exclude_resources,
+                include_namespaces,
+                exclude_namespaces,
+            ):
+                counter.update(
+                    handle_resource_on_ttl(
+                        namespace,
+                        rules,
+                        delete_notification,
+                        deployment_time_annotation,
+                        resource_context_hook,
+                        cache,
+                        wait_after_delete,
+                        dry_run,
+                    )
+                )
+                counter.update(
+                    handle_resource_on_expiry(
+                        namespace, rules, delete_notification, wait_after_delete, dry_run
+                    )
+                )
+            else:
+                logger.debug(f"Skipping {namespace.kind} {namespace}")
+
 
     already_seen: set = set()
 
