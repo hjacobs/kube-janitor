@@ -311,6 +311,50 @@ def test_clean_up_default():
     assert counter["resources-processed"] == 1
 
 
+def test_clean_up_only_included_namespaces():
+    api_mock = MagicMock(spec=NamespacedAPIObject, name="APIMock")
+
+    def get(**kwargs):
+        if kwargs.get("url") == "namespaces/foo":
+            data = {"metadata": {"name": "foo"}}
+        elif kwargs.get("url") == "namespaces":
+            # kube-system is skipped
+            data = {
+                "items": [
+                    {"metadata": {"name": "default"}},
+                    {"metadata": {"name": "foo"}},
+                    {"metadata": {"name": "kube-system"}},
+                ]
+            }
+        elif kwargs.get("url") == "namespaces/foo":
+            # kube-system is skipped
+            data = {"items": [{"metadata": {"name": "foo"}}]}
+        elif kwargs["version"] == "v1":
+            data = {"resources": []}
+        elif kwargs["version"] == "/apis":
+            data = {"groups": []}
+        else:
+            data = {}
+        response = MagicMock()
+        response.json.return_value = data
+        return response
+
+    api_mock.get = get
+    counter = clean_up(
+        api_mock,
+        ALL,
+        [],
+        ["foo"],
+        ["kube-system"],
+        [],
+        delete_notification=0,
+        deployment_time_annotation=None,
+        dry_run=False,
+    )
+
+    assert counter["resources-processed"] == 1
+
+
 @mock_now
 def test_ignore_nonlistable_api_group():
     api_mock = MagicMock(spec=NamespacedAPIObject, name="APIMock")
