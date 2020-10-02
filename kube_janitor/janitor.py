@@ -296,7 +296,16 @@ def clean_up(
     counter: Counter = Counter()
     cache: Dict[str, Any] = {}
 
-    for namespace in Namespace.objects(api):
+    namespaces = []
+
+    if "all" in include_namespaces:
+        namespaces.extend(list(Namespace.objects(api)))
+    else:
+        for namespace_name in include_namespaces:
+            namespace = Namespace.objects(api).get(name=namespace_name)
+            namespaces.append(namespace)
+
+    for namespace in namespaces:
         if matches_resource_filter(
             namespace,
             include_resources,
@@ -318,7 +327,7 @@ def clean_up(
             )
             counter.update(
                 handle_resource_on_expiry(
-                    namespace, rules, delete_notification, wait_after_delete, dry_run
+                    namespace, rules, delete_notification, wait_after_delete, dry_run,
                 )
             )
         else:
@@ -332,7 +341,16 @@ def clean_up(
     for _type in resource_types:
         if _type.endpoint not in exclude_resources:
             try:
-                for resource in _type.objects(api, namespace=pykube.all):
+                resources = []
+                if "all" in include_namespaces:
+                    resources.extend(list(_type.objects(api, namespace=pykube.all)))
+                else:
+                    for namespace_name in include_namespaces:
+                        resources.extend(
+                            list(_type.objects(api, namespace=namespace_name))
+                        )
+
+                for resource in resources:
                     # objects might be available via multiple API versions (e.g. deployments appear as extensions/v1beta1 and apps/v1)
                     # => process them only once
                     object_id = (resource.kind, resource.namespace, resource.name)
