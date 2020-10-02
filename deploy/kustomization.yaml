@@ -3,4 +3,9 @@ kind: Kustomization
 resources:
   - deployment.yaml
   - rbac.yaml
-  - rules-config.yaml
+
+configMapGenerator:
+- name: kube-janitor
+  behavior: create
+  files:
+  - rules.yaml
