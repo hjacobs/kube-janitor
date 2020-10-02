@@ -296,71 +296,42 @@ def clean_up(
     counter: Counter = Counter()
     cache: Dict[str, Any] = {}
 
+    namespaces = []
+
     if "all" in include_namespaces:
-        for namespace in Namespace.objects(api):
-            if matches_resource_filter(
-                namespace,
-                include_resources,
-                exclude_resources,
-                include_namespaces,
-                exclude_namespaces,
-            ):
-                counter.update(
-                    handle_resource_on_ttl(
-                        namespace,
-                        rules,
-                        delete_notification,
-                        deployment_time_annotation,
-                        resource_context_hook,
-                        cache,
-                        wait_after_delete,
-                        dry_run,
-                    )
-                )
-                counter.update(
-                    handle_resource_on_expiry(
-                        namespace,
-                        rules,
-                        delete_notification,
-                        wait_after_delete,
-                        dry_run,
-                    )
-                )
-            else:
-                logger.debug(f"Skipping {namespace.kind} {namespace}")
+        namespaces.extend(list(Namespace.objects(api)))
     else:
         for namespace_name in include_namespaces:
             namespace = Namespace.objects(api).get(name=namespace_name)
-            if matches_resource_filter(
-                namespace,
-                include_resources,
-                exclude_resources,
-                include_namespaces,
-                exclude_namespaces,
-            ):
-                counter.update(
-                    handle_resource_on_ttl(
-                        namespace,
-                        rules,
-                        delete_notification,
-                        deployment_time_annotation,
-                        resource_context_hook,
-                        cache,
-                        wait_after_delete,
-                        dry_run,
-                    )
+            namespaces.append(namespace)
+
+    for namespace in namespaces:
+        if matches_resource_filter(
+            namespace,
+            include_resources,
+            exclude_resources,
+            include_namespaces,
+            exclude_namespaces,
+        ):
+            counter.update(
+                handle_resource_on_ttl(
+                    namespace,
+                    rules,
+                    delete_notification,
+                    deployment_time_annotation,
+                    resource_context_hook,
+                    cache,
+                    wait_after_delete,
+                    dry_run,
                 )
-                counter.update(
-                    handle_resource_on_expiry(
-                        namespace,
-                        rules,
-                        delete_notification,
-                        wait_after_delete,
-                        dry_run,
-                    )
+            )
+            counter.update(
+                handle_resource_on_expiry(
+                    namespace, rules, delete_notification, wait_after_delete, dry_run,
                 )
-            else:
-                logger.debug(f"Skipping {namespace.kind} {namespace}")
+            )
+        else:
+            logger.debug(f"Skipping {namespace.kind} {namespace}")
 
     already_seen: set = set()
 
@@ -370,53 +341,34 @@ def clean_up(
     for _type in resource_types:
         if _type.endpoint not in exclude_resources:
             try:
+                resources = []
                 if "all" in include_namespaces:
-                    for resource in _type.objects(api, namespace=pykube.all):
-                        # objects might be available via multiple API versions (e.g. deployments appear as extensions/v1beta1 and apps/v1)
-                        # => process them only once
-                        object_id = (resource.kind, resource.namespace, resource.name)
-                        if object_id in already_seen:
-                            continue
-                        already_seen.add(object_id)
-                        if matches_resource_filter(
-                            resource,
-                            include_resources,
-                            exclude_resources,
-                            include_namespaces,
-                            exclude_namespaces,
-                        ):
-                            filtered_resources.append(resource)
-                        else:
-                            logger.debug(
-                                f"Skipping {resource.kind} {resource.namespace}/{resource.name}"
-                            )
+                    resources.extend(list(_type.objects(api, namespace=pykube.all)))
+                else:
+                    for namespace_name in include_namespaces:
+                        resources.extend(
+                            list(_type.objects(api, namespace=namespace_name))
+                        )
+
+                for resource in resources:
+                    # objects might be available via multiple API versions (e.g. deployments appear as extensions/v1beta1 and apps/v1)
+                    # => process them only once
+                    object_id = (resource.kind, resource.namespace, resource.name)
+                    if object_id in already_seen:
+                        continue
+                    already_seen.add(object_id)
+                    if matches_resource_filter(
+                        resource,
+                        include_resources,
+                        exclude_resources,
+                        include_namespaces,
+                        exclude_namespaces,
+                    ):
+                        filtered_resources.append(resource)
                     else:
-                        for namespace_name in include_namespaces:
-                            for resource in _type.objects(
-                                api, namespace=namespace_name
-                            ):
-                                # objects might be available via multiple API versions (e.g. deployments appear as extensions/v1beta1 and apps/v1)
-                                # => process them only once
-                                object_id = (
-                                    resource.kind,
-                                    resource.namespace,
-                                    resource.name,
-                                )
-                                if object_id in already_seen:
-                                    continue
-                                already_seen.add(object_id)
-                                if matches_resource_filter(
-                                    resource,
-                                    include_resources,
-                                    exclude_resources,
-                                    include_namespaces,
-                                    exclude_namespaces,
-                                ):
-                                    filtered_resources.append(resource)
-                                else:
-                                    logger.debug(
-                                        f"Skipping {resource.kind} {resource.namespace}/{resource.name}"
-                                    )
+                        logger.debug(
+                            f"Skipping {resource.kind} {resource.namespace}/{resource.name}"
+                        )
             except Exception as e:
                 logger.error(f"Could not list {_type.kind} objects: {e}")
 
